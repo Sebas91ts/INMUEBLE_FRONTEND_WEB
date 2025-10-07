@@ -1,12 +1,14 @@
+// routes/AppRoutes.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import LoginForm from '../pages/login'
-import Dashboard from '../pages/Dashboard/Dashboard'
-import ProtectedRoute from '../components/ProtectedRoutes'
-import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
+import AdminRoutes from './AdminRoutes'
+import UserRoutes from './UserRoutes'
+import HomeUser from '../pages/HomeUser/HomeUser'
+import Home from '../pages/HomeUser/ContentHomeUser'
 
-function AppRoutes() {
-  const { isAuthenticated, loading } = useAuth()
+export default function AppRoutes() {
+  const { isAuthenticated, loading, user } = useAuth()
 
   if (loading) {
     return (
@@ -16,32 +18,21 @@ function AppRoutes() {
     )
   }
 
+  // Rutas protegidas solo para admin
+  if (isAuthenticated && user?.grupo_id === 1) {
+    return <AdminRoutes />
+  }
+
+  // Rutas públicas (cliente / Home) y login
   return (
     <Routes>
-      <Route
-        path='/login'
-        element={
-          !isAuthenticated ? <LoginForm /> : <Navigate to='/dashboard' />
-        }
-      />
-      <Route
-        path='/dashboard'
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<EstadisticasDashboard />} /> {/* Default */}
-        <Route path='estadisticas' element={<EstadisticasDashboard />} />
+      {/* Layout del cliente */}
+      <Route path='/' element={<HomeUser />}>
+        <Route index element={<Home />} />
       </Route>
 
-      <Route
-        path='/'
-        element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} />}
-      />
+      <Route path='/login' element={<LoginForm />} />
+      <Route path='*' element={<Navigate to='/' />} />
     </Routes>
   )
 }
-
-export default AppRoutes

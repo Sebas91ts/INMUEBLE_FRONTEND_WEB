@@ -42,6 +42,12 @@ const baseMenuItems = [
     label: 'Chat',
     path: '/dashboard/chat',
   },
+    {
+    id: 'bitacora',
+    icon: FileText,
+    label: 'Bitácora',
+    path: '/dashboard/bitacora',
+  },
 ]
 
 export default function Sidebar() {
@@ -56,8 +62,7 @@ export default function Sidebar() {
   }
 
   // Si el usuario es administrador, tiene acceso a todo
-  const esAdmin = user?.rol?.toLowerCase() === 'administrador'
-
+  const esAdmin = user?.grupo_nombre.toLowerCase() === 'administrador'
   // 🔍 Filtrar solo los componentes con al menos un privilegio TRUE
   const privilegiosActivos = esAdmin
     ? baseMenuItems.map(item => item.id) // admin = todo
@@ -119,8 +124,8 @@ export default function Sidebar() {
           {sidebarOpen && (
             <div className='flex-1 min-w-0'>
               <p className='text-sm font-medium text-gray-900 truncate'>{getUserDisplayName()}</p>
-              <p className='text-xs text-gray-500 truncate'>{user?.rol}</p>
-              <p className='text-xs text-gray-400 truncate'>{user?.email}</p>
+              <p className='text-xs text-gray-500 truncate'>{user?.grupo_nombre}</p>
+              <p className='text-xs text-gray-400 truncate'>{user?.correo}</p>
             </div>
           )}
         </div>

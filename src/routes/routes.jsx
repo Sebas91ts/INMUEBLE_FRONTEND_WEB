@@ -3,7 +3,17 @@ import { useAuth } from '../hooks/useAuth'
 import LoginForm from '../pages/login'
 import Dashboard from '../pages/Dashboard/Dashboard'
 import ProtectedRoute from '../components/ProtectedRoutes'
+import PrivilegedRoute from '../components/PrivilegedRoute'
 import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
+
+// Ejemplo de páginas adicionales
+// import InmueblesVenta from '../pages/Inmuebles/EnVenta'
+// import InmueblesAlquiler from '../pages/Inmuebles/EnAlquiler'
+// import InmueblesAnticretico from '../pages/Inmuebles/EnAnticretico'
+// import ContratosCrear from '../pages/Contratos/Crear'
+// import ContratosListar from '../pages/Contratos/Listar'
+// import Chat from '../pages/Chat/Chat'
+import Bitacora from '../pages/Bitacora/Bitacora'
 
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth()
@@ -20,10 +30,9 @@ function AppRoutes() {
     <Routes>
       <Route
         path='/login'
-        element={
-          !isAuthenticated ? <LoginForm /> : <Navigate to='/dashboard' />
-        }
+        element={!isAuthenticated ? <LoginForm /> : <Navigate to='/dashboard' />}
       />
+
       <Route
         path='/dashboard'
         element={
@@ -32,9 +41,74 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<EstadisticasDashboard />} /> {/* Default */}
+        {/* Default */}
+        <Route index element={<EstadisticasDashboard />} />
         <Route path='estadisticas' element={<EstadisticasDashboard />} />
-      </Route>
+
+        {/* Inmuebles
+        <Route
+          path='inmuebles/venta'
+          element={
+            <PrivilegedRoute componente='inmueble'>
+              <InmueblesVenta />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path='inmuebles/alquiler'
+          element={
+            <PrivilegedRoute componente='inmueble'>
+              <InmueblesAlquiler />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path='inmuebles/anticretico'
+          element={
+            <PrivilegedRoute componente='inmueble'>
+              <InmueblesAnticretico />
+            </PrivilegedRoute>
+          }
+        />
+
+        {/* Contratos */}
+        {/* <Route
+          path='contratos/crear'
+          element={
+            <PrivilegedRoute componente='contrato'>
+              <ContratosCrear />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path='contratos'
+          element={
+            <PrivilegedRoute componente='contrato'>
+              <ContratosListar />
+            </PrivilegedRoute>
+          }
+        />
+
+        {/* Chat */}
+        {/* <Route
+          path='chat'
+          element={
+            <PrivilegedRoute componente='chat'>
+              <Chat />
+            </PrivilegedRoute>
+          }
+        /> */}
+
+        {/* Bitácora */}
+        <Route
+          path='bitacora'
+          element={
+            <PrivilegedRoute componente='bitacora'>
+              <Bitacora />
+            </PrivilegedRoute>
+          }
+        />
+      </Route>  
 
       <Route
         path='/'

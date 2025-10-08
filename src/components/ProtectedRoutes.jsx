@@ -17,19 +17,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to='/login' state={{ from: location }} replace />
   }
 
-  //HABILITAR CUANDO ESTEN BIEN CONFIGURADOS LOS GRUPOS
-  // if (user.grupo_id !== 1) {
-  //   return (
-  //     <div className='flex items-center justify-center min-h-screen'>
-  //       <div className='flex flex-col items-center'>
-  //         <h1 className='text-2xl font-bold text-gray-900'>Acceso denegado</h1>
-  //         <p className='text-gray-600 mt-1'>
-  //           No tienes permiso para acceder a esta ruta.
-  //         </p>
-  //       </div>
-  //     </div>
-  //   )
-  // }
+  if (user?.grupo_id !== 1) {
+    return <Navigate to='/' replace />
+  }
 
   return children
 }

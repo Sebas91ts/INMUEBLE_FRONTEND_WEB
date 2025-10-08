@@ -4,8 +4,8 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Mail,
   User,
+  Mail,
   Phone,
   MapPin,
   Calendar,
@@ -32,25 +32,17 @@ export default function LoginForm() {
   const { login, register, loading, error, clearError } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-
   const from = location.state?.from?.pathname || '/dashboard'
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }))
-
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }))
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
     if (error) clearError()
   }
 
   const validateForm = () => {
     const newErrors = {}
-
     if (!isLogin) {
       if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido'
       if (!formData.correo.trim()) newErrors.correo = 'El correo es requerido'
@@ -62,16 +54,12 @@ export default function LoginForm() {
       if (!formData.fecha_nacimiento.trim())
         newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida'
     }
-
-    if (!formData.username.trim()) {
+    if (!formData.username.trim())
       newErrors.username = 'El username es requerido'
-    }
-
-    if (!formData.password.trim()) {
+    if (!formData.password.trim())
       newErrors.password = 'La contraseña es requerida'
-    } else if (formData.password.length < 3) {
+    else if (formData.password.length < 3)
       newErrors.password = 'La contraseña debe tener al menos 3 caracteres'
-    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -79,7 +67,6 @@ export default function LoginForm() {
 
   const handleSubmit = async () => {
     if (!validateForm()) return
-
     const result = isLogin
       ? await login({
           username: formData.username,
@@ -87,11 +74,7 @@ export default function LoginForm() {
         })
       : await register(formData)
 
-    console.log('Resultado register/login:', result)
-
-    if (result.success) {
-      navigate(from, { replace: true })
-    }
+    if (result.success) navigate(from, { replace: true })
   }
 
   const toggleMode = () => {
@@ -111,17 +94,17 @@ export default function LoginForm() {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-indigo-100 via-white to-cyan-100 flex items-center justify-center p-4'>
-      <div className='bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 w-full max-w-md'>
+    <div className='min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center p-4'>
+      <div className='bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 w-full max-w-md'>
         {/* Header */}
         <div className='text-center mb-8'>
-          <div className='mx-auto w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg'>
+          <div className='mx-auto w-16 h-16 bg-stone-900 rounded-2xl flex items-center justify-center mb-4 shadow-lg'>
             <Lock className='text-white' size={28} />
           </div>
-          <h2 className='text-2xl font-bold text-gray-800'>
+          <h2 className='text-2xl font-bold text-stone-900'>
             {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
           </h2>
-          <p className='text-gray-600 mt-2'>
+          <p className='text-stone-600 mt-2'>
             {isLogin ? 'Bienvenido de vuelta' : 'Únete a nosotros'}
           </p>
         </div>
@@ -136,16 +119,16 @@ export default function LoginForm() {
 
         {/* Form */}
         <div className='space-y-6'>
-          {/* Nombre (solo registro) */}
           {!isLogin && (
             <>
+              {/* Nombre */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   Nombre completo
                 </label>
                 <div className='relative'>
                   <User
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -167,13 +150,14 @@ export default function LoginForm() {
                 )}
               </div>
 
+              {/* Correo */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   Correo
                 </label>
                 <div className='relative'>
                   <Mail
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -195,13 +179,14 @@ export default function LoginForm() {
                 )}
               </div>
 
+              {/* CI */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   CI
                 </label>
                 <div className='relative'>
                   <IdCard
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -223,13 +208,14 @@ export default function LoginForm() {
                 )}
               </div>
 
+              {/* Teléfono */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   Teléfono
                 </label>
                 <div className='relative'>
                   <Phone
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -251,13 +237,14 @@ export default function LoginForm() {
                 )}
               </div>
 
+              {/* Ubicación */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   Ubicación
                 </label>
                 <div className='relative'>
                   <MapPin
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -281,13 +268,14 @@ export default function LoginForm() {
                 )}
               </div>
 
+              {/* Fecha de nacimiento */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label className='block text-sm font-medium text-stone-900 mb-2'>
                   Fecha de nacimiento
                 </label>
                 <div className='relative'>
                   <Calendar
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                     size={20}
                   />
                   <input
@@ -314,12 +302,12 @@ export default function LoginForm() {
 
           {/* Username */}
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label className='block text-sm font-medium text-stone-900 mb-2'>
               Nombre de usuario
             </label>
             <div className='relative'>
               <User
-                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                 size={20}
               />
               <input
@@ -343,12 +331,12 @@ export default function LoginForm() {
 
           {/* Password */}
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label className='block text-sm font-medium text-stone-900 mb-2'>
               Contraseña
             </label>
             <div className='relative'>
               <Lock
-                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
                 size={20}
               />
               <input
@@ -368,7 +356,7 @@ export default function LoginForm() {
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
-                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-stone-600 hover:text-stone-900'
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -378,33 +366,30 @@ export default function LoginForm() {
             )}
           </div>
 
-          {/* Submit button */}
+          {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className='w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50'
+            className='w-full bg-stone-900 text-white py-3 px-4 rounded-md font-medium hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2 disabled:opacity-50'
           >
-            {loading ? (
-              <div className='flex items-center justify-center space-x-2'>
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                <span>{isLogin ? 'Iniciando...' : 'Registrando...'}</span>
-              </div>
-            ) : isLogin ? (
-              'Iniciar Sesión'
-            ) : (
-              'Crear Cuenta'
-            )}
+            {loading
+              ? isLogin
+                ? 'Iniciando...'
+                : 'Registrando...'
+              : isLogin
+              ? 'Iniciar Sesión'
+              : 'Crear Cuenta'}
           </button>
         </div>
 
         {/* Toggle */}
         <div className='mt-6 text-center'>
-          <p className='text-gray-600'>
+          <p className='text-stone-600'>
             {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
             <button
               onClick={toggleMode}
               disabled={loading}
-              className='ml-2 text-indigo-600 hover:text-indigo-500 font-medium'
+              className='ml-2 text-stone-900 hover:text-stone-700 font-medium'
             >
               {isLogin ? 'Regístrate aquí' : 'Inicia sesión'}
             </button>

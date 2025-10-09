@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getInmuebleById } from "../../api/inmueble/inmuebles";
+import { getInmuebleById } from "../../api/inmueble/index";
 
 // Función para ajustar la resolución/quality según proveedor
 const tuned = (url, width = 1600, quality = 85) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getInmuebles } from "../../api/inmueble/inmuebles";
+import { getInmuebles } from "../../api/inmueble/index";
 
 export default function ListadoInmuebles({
   tipo,

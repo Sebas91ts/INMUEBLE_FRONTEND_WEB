@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getInmuebles } from "../../api/inmueble/inmuebles";
+import { getInmuebles } from "../../api/inmueble/index";
 
 import { useNavigate } from "react-router-dom";
 

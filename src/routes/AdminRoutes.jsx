@@ -12,7 +12,7 @@ import SolicitudesAgentes from '../pages/SolicitudAgente/SolicitudAgente'
 import Contratos from '../pages/Contratos/Contratos'
 import UsuariosDashboard from '../pages/Usuarios/Usuarios'
 import EditarPerfil from '../pages/Dashboard/components/EditarPerfil'
-
+import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
 import Bitacora from '../pages/Bitacora/Bitacora'
 export default function AdminRoutes() {
   return (
@@ -37,6 +37,7 @@ export default function AdminRoutes() {
             </PrivilegedRoute>
           }
         />
+        <Route path="inmuebles/crear" element={<CreateInmueble />} />
         <Route path='permisos/grupos' element={<Grupos />} />
         <Route path='permisos/privilegios' element={<Privilegios />} />
         <Route path='permisos/componentes' element={<Componentes />} />

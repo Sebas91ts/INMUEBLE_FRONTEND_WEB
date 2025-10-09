@@ -45,7 +45,8 @@ const baseMenuItems = [
         id: 'anticretico',
         label: 'En anticrético',
         path: '/dashboard/inmuebles/anticretico'
-      }
+      },
+      { id: 'inmueble', label: 'Crear Inmueble', path: 'inmuebles/crear' }
     ]
   },
   {

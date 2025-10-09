@@ -93,7 +93,6 @@ export default function LoginForm() {
           password: formData.password
         })
       : await register(payload)
-
     if (!isLogin) {
       if (result.success) {
         if (userType === 'cliente') {

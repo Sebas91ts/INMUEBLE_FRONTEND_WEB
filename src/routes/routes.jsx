@@ -17,16 +17,17 @@ export default function AppRoutes() {
   }
 
   // 👇 Si es admin, enviamos todo al router del dashboard (que ya maneja /dashboard/*)
-  if (isAuthenticated && user?.grupo_id === 1) {
+  if (isAuthenticated && user?.grupo_nombre === 'administrador') {
     return <AdminRoutes />;
   }
 
   // 👇 Público (cliente): montamos TODAS las rutas de UserRoutes en /*
   return (
     <Routes>
-      <Route path="/*" element={<UserRoutes />} />
-      <Route path="/login" element={<LoginForm />} />
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* Layout del cliente */}
+      <Route path='/home/*' element={<UserRoutes />} />
+      <Route path='/login' element={<LoginForm />} />
+      <Route path='*' element={<Navigate to='/home' />} />
     </Routes>
   );
 }

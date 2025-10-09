@@ -27,12 +27,9 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* Layout del cliente */}
-      <Route path='/' element={<HomeUser />}>
-        <Route index element={<Home />} />
-      </Route>
-
+      <Route path='/home/*' element={<UserRoutes />} />
       <Route path='/login' element={<LoginForm />} />
-      <Route path='*' element={<Navigate to='/' />} />
+      <Route path='*' element={<Navigate to='/home' />} />
     </Routes>
   )
 }
@@ -85,7 +82,8 @@ export default function AppRoutes() {
 //         <Route index element={<EstadisticasDashboard />} />
 //         <Route path='estadisticas' element={<EstadisticasDashboard />} />
 
-        {/* Inmuebles
+{
+  /* Inmuebles
         <Route
           path='inmuebles/venta'
           element={
@@ -111,8 +109,10 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Contratos */}
-        {/* <Route
+        {/* Contratos */
+}
+{
+  /* <Route
           path='contratos/crear'
           element={
             <PrivilegedRoute componente='contrato'>
@@ -129,18 +129,24 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Chat */}
-        {/* <Route
+        {/* Chat */
+}
+{
+  /* <Route
           path='chat'
           element={
             <PrivilegedRoute componente='chat'>
               <Chat />
             </PrivilegedRoute>
           }
-        /> */}
+        /> */
+}
 
-        {/* Bitácora */}
-        {/* <Route
+{
+  /* Bitácora */
+}
+{
+  /* <Route
           path='bitacora'
           element={
             <PrivilegedRoute componente='bitacora'>
@@ -158,4 +164,5 @@ export default function AppRoutes() {
   )
 }
 
-export default AppRoutes */}
+export default AppRoutes */
+}

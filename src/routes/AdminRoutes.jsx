@@ -8,6 +8,7 @@ import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDas
 import SolicitudesAgentes from '../pages/SolicitudAgente/SolicitudAgente'
 import Contratos from '../pages/Contratos/Contratos'
 import UsuariosDashboard from '../pages/Usuarios/Usuarios'
+import EditarPerfil from '../pages/Dashboard/components/EditarPerfil'
 
 import Bitacora from '../pages/Bitacora/Bitacora'
 export default function AdminRoutes() {
@@ -36,6 +37,7 @@ export default function AdminRoutes() {
         <Route path='solicitud-agente' element={<SolicitudesAgentes />} />
         <Route path='contratos' element={<Contratos />} />
         <Route path='usuarios' element={<UsuariosDashboard />} />
+        <Route path='editar-perfil' element={<EditarPerfil />} />
       </Route>
 
       <Route path='*' element={<Navigate to='/dashboard' />} />

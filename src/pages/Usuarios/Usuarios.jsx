@@ -57,7 +57,7 @@ export default function UsuariosDashboard() {
   }, [])
 
   const usuarios = data?.data?.values?.usuarios || []
-
+  console.log(usuarios)
   const filteredUsuarios = usuarios
     .filter((u) => (verEliminados ? !u.is_active : u.is_active))
     .filter(
@@ -142,6 +142,7 @@ export default function UsuariosDashboard() {
               <th className='px-4 py-2 text-left'>CI</th>
               <th className='px-4 py-2 text-left'>Teléfono</th>
               <th className='px-4 py-2 text-left'>Email</th>
+              <th className='px-4 py-2 text-left'>Ubicación</th>
               <th className='px-4 py-2 text-left'>Rol</th>
               <th className='px-4 py-2 text-left'>Acciones</th>
             </tr>
@@ -155,6 +156,7 @@ export default function UsuariosDashboard() {
                 <td className='px-4 py-2'>{u.ci}</td>
                 <td className='px-4 py-2'>{u.telefono || ''}</td>
                 <td className='px-4 py-2'>{u.correo}</td>
+                <td className='px-4 py-2'>{u.ubicacion || ''}</td>
                 <td className='px-4 py-2'>{u.grupo_nombre}</td>
                 <td className='px-4 py-2 flex gap-2'>
                   {u.is_active ? (

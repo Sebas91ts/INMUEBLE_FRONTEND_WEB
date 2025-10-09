@@ -3,39 +3,73 @@ import { useState } from 'react'
 import { Menu, X, Home, Building2, Phone, Info, LogOut } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
+import UserAvatar from '../../Dashboard/components/UserAvatar'
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const { privilegios, loading } = usePrivilegios()
 
-const navLinks = [
-  { to: '/', label: 'Inicio', icon: Home, componente: 'Inicio', protegido: false },
-  { to: '/propiedades', label: 'Propiedades', icon: Building2, componente: 'Inmueble', protegido: true },
-  { to: '/nosotros', label: 'Nosotros', icon: Info, componente: 'Nosotros', protegido: false },
-  { to: '/contacto', label: 'Contacto', icon: Phone, componente: 'Contacto', protegido: false },
-  { to: '/dashboard', label: 'Dashboard', icon: Home, componente: 'Dashboard', protegido: true } 
-]
+  const navLinks = [
+    {
+      to: '/home',
+      label: 'Inicio',
+      icon: Home,
+      componente: 'Inicio',
+      protegido: false
+    },
+    {
+      to: '/home/propiedades',
+      label: 'Propiedades',
+      icon: Building2,
+      componente: 'Inmueble',
+      protegido: true
+    },
+    {
+      to: '/home/nosotros',
+      label: 'Nosotros',
+      icon: Info,
+      componente: 'Nosotros',
+      protegido: false
+    },
+    {
+      to: '/home/contacto',
+      label: 'Contacto',
+      icon: Phone,
+      componente: 'Contacto',
+      protegido: false
+    },
+    {
+      to: '/home/dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      componente: 'Dashboard',
+      protegido: true
+    }
+  ]
 
-
-  if (loading) return <div className="p-4 text-gray-500">Cargando permisos...</div>
+  if (loading)
+    return <div className='p-4 text-gray-500'>Cargando permisos...</div>
 
   // Filtrar links según privilegios
   const linksFiltrados = navLinks.filter((link) => {
-  // Links públicos → siempre mostrar
-  if (!link.protegido) return true
+    // Links públicos → siempre mostrar
+    if (!link.protegido) return true
 
-  if (!user) return false
-  if (user.grupo_nombre?.toLowerCase() === 'administrador') return true // Admin ve todo
+    if (!user) return false
+    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true // Admin ve todo
 
-  // Revisar privilegios solo para links protegidos
-  return privilegios.some(
-    (p) =>
-      p.componente.toLowerCase() === link.componente.toLowerCase() &&
-      (p.puede_crear || p.puede_actualizar || p.puede_eliminar || p.puede_leer || p.puede_activar)
-  )
-})
-
+    // Revisar privilegios solo para links protegidos
+    return privilegios.some(
+      (p) =>
+        p.componente.toLowerCase() === link.componente.toLowerCase() &&
+        (p.puede_crear ||
+          p.puede_actualizar ||
+          p.puede_eliminar ||
+          p.puede_leer ||
+          p.puede_activar)
+    )
+  })
 
   const handleLogout = async () => {
     await logout()
@@ -70,12 +104,15 @@ const navLinks = [
           {/* Desktop Login / Logout */}
           <div className='hidden md:block'>
             {user ? (
-              <button
-                onClick={handleLogout}
-                className='inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2'
-              >
-                Cerrar Sesión
-              </button>
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={handleLogout}
+                  className='inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2'
+                >
+                  Cerrar Sesión
+                </button>
+                <UserAvatar user={user} />
+              </div>
             ) : (
               <Link
                 to='/login'
@@ -92,7 +129,11 @@ const navLinks = [
             className='md:hidden text-stone-900'
             aria-label='Toggle menu'
           >
-            {isMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
+            {isMenuOpen ? (
+              <X className='h-6 w-6' />
+            ) : (
+              <Menu className='h-6 w-6' />
+            )}
           </button>
         </div>
 

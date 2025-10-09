@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { listarTiposInmueble, crearInmueble } from "../../api/inmuebles";
+import { listarTiposInmueble, crearInmueble } from "../../api/inmueble/index";
 import { uploadImageToCloudinary } from "../../api/uploader";
 
 export default function CreateInmueble() {

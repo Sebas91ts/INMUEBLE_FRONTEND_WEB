@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import {
   getSolicitudesInmuebles,
   cambiarEstadoInmueble,
-} from "../../api/inmuebles/inmuebles";
+} from "../../api/inmueble/solicitud";
 import ApprovalModal from "../../components/AprovalModal";
 import ErrorModal from "../../components/ErrorModal";
 import { useApi } from "../../hooks/useApi";

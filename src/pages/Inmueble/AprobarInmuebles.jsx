@@ -4,7 +4,7 @@ import {
   getSolicitudesInmuebles,
   aceptarInmueble,
   rechazarInmueble,
-} from "../../api/inmuebles/inmuebles"; // ⬅️ usa el api unificado
+} from "../../api/inmueble/solicitud"; // ⬅️ usa el api unificado
 import { useApi } from "../../hooks/useApi";
 import ApprovalModal from "../../components/AprovalModal";
 import ErrorModal from "../../components/ErrorModal";

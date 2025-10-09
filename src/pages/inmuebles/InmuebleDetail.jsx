@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getInmuebleById } from "../../api/inmueble/inmuebles";
+import { getInmuebleById } from "../../api/inmueble/index";
 
 const FALLBACK = "https://images.unsplash.com/photo-1501183638710-841dd1904471";
 

@@ -1,4 +1,3 @@
-// src/pages/usuarios/components/EditarUsuarioModal.jsx
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { useApi } from '../../../hooks/useApi'
@@ -14,9 +13,10 @@ export default function EditarUsuarioModal({
     nombre: usuario.nombre || '',
     ci: usuario.ci || '',
     telefono: usuario.telefono || '',
-    email: usuario.email || '',
-    passsword: usuario.password || '',
-    rol_name: usuario.rol_name || 'copropietario'
+    correo: usuario.correo || '',
+    ubicacion: usuario.ubicacion || '',
+    grupo_id: usuario.grupo_id || 3,
+    password: ''
   })
 
   const { loading, error, execute } = useApi(updateUsuario)
@@ -29,14 +29,17 @@ export default function EditarUsuarioModal({
   const handleSubmit = async (e) => {
     e.preventDefault()
     const result = await execute(usuario.id, formData)
-    if (result.success) {
+    console.log(result)
+    if (result.data.status === 1) {
       onSuccess()
       setShowModal(false)
+    } else {
+      alert(result.data.message)
     }
   }
 
   return (
-    <div className='fixed inset-0 flex items-center justify-center bg-black/40 bg-opacity-40 z-50'>
+    <div className='fixed inset-0 flex items-center justify-center bg-black/40 z-50'>
       <div className='bg-white rounded-xl shadow-lg w-full max-w-lg p-6'>
         {/* Header */}
         <div className='flex justify-between items-center border-b pb-3 mb-4'>
@@ -97,11 +100,11 @@ export default function EditarUsuarioModal({
           </div>
 
           <div>
-            <label className='block text-sm font-medium'>Email</label>
+            <label className='block text-sm font-medium'>Correo</label>
             <input
               type='email'
-              name='email'
-              value={formData.email}
+              name='correo'
+              value={formData.correo}
               onChange={handleChange}
               className='w-full border rounded-lg px-3 py-2'
             />
@@ -124,14 +127,14 @@ export default function EditarUsuarioModal({
           <div>
             <label className='block text-sm font-medium'>Rol</label>
             <select
-              name='rol_name'
-              value={formData.rol_name}
+              name='grupo_id'
+              value={formData.grupo_id}
               onChange={handleChange}
               className='w-full border rounded-lg px-3 py-2'
             >
-              <option value='administrador'>Administrador</option>
-              <option value='copropietario'>Copropietario</option>
-              <option value='personal'>Personal</option>
+              <option value={1}>Administrador</option>
+              <option value={2}>Agente</option>
+              <option value={3}>Cliente</option>
             </select>
           </div>
 

@@ -9,13 +9,22 @@ import {
 } from 'lucide-react'
 import { useApi } from '../../hooks/useApi'
 import { getUsuarios } from '../../api/usuarios/usuarios'
+import EditarUsuarioModal from './components/EditarUsuarioModal'
+import ApprovalModal from '../../components/AprovalModal'
 
 export default function UsuariosDashboard() {
   const [filterRole, setFilterRole] = useState('all')
   const [showModalEditar, setShowModalEditar] = useState(false)
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null)
+  const [showModalAprobar, setShowModalAprobar] = useState(false)
 
   const { data, error, loading, execute } = useApi(getUsuarios)
+
+  const handleSuccess = () => {
+    setShowModalEditar(false)
+    execute()
+    setShowModalAprobar(true)
+  }
 
   useEffect(() => {
     execute()
@@ -116,7 +125,15 @@ export default function UsuariosDashboard() {
         <EditarUsuarioModal
           usuario={usuarioSeleccionado}
           setShowModal={setShowModalEditar}
-          onSuccess={execute}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {showModalAprobar && (
+        <ApprovalModal
+          isOpen={showModalAprobar}
+          onClose={() => setShowModalAprobar(false)}
+          message='El usuario ha sido editado exitosamente'
         />
       )}
     </div>

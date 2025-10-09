@@ -1,9 +1,11 @@
+//src/pages/Dashboard/components/Sidebar.jsx
 import { useState } from 'react'
 import { useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
 import {
   Home,
+  Settings,
   FileText,
   MessageSquare,
   Building,
@@ -18,6 +20,16 @@ import {
 // Menú base
 const baseMenuItems = [
   { id: 'dashboard', icon: Home, label: 'Dashboard', path: '/dashboard' },
+  {
+    id: 'permisos',
+    icon: Settings,
+    label: 'Permisos',
+    subItems: [
+      { id: 'grupos', label: 'Grupos', path: '/dashboard/permisos/grupos' },
+      { id: 'privilegios', label: 'Privilegios', path: '/dashboard/permisos/privilegios' },
+      { id: 'componentes', label: 'Modulos', path: '/dashboard/permisos/componentes' },
+    ],
+  },
   {
     id: 'inmueble',
     icon: Building,

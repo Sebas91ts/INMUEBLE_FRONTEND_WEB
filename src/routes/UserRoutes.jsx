@@ -1,22 +1,33 @@
-// routes/ClientRoutes.jsx
 import { Route, Routes, Navigate } from 'react-router-dom'
 import HomeUser from '../pages/HomeUser/HomeUser'
 import Home from '../pages/HomeUser/ContentHomeUser'
+import PrivilegedRoute from '../components/PrivilegedRoute'
 
 export default function UserRoutes() {
   return (
     <Routes>
-      {/* Layout de cliente */}
       <Route path='/' element={<HomeUser />}>
         {/* Página por defecto */}
         <Route index element={<Home />} />
-        {/* Otras páginas de cliente */}
-        <Route path='propiedades' element={<div>Propiedades</div>} />
+
+        {/* Páginas públicas */}
         <Route path='nosotros' element={<div>Nosotros</div>} />
         <Route path='contacto' element={<div>Contacto</div>} />
-        {/* Redireccionamiento por defecto */}
+
+        {/* Páginas protegidas por privilegios */}
+        <Route
+          path='propiedades'
+          element={
+            <PrivilegedRoute componente='Propiedades'>
+              <div>Propiedades</div>
+            </PrivilegedRoute>
+          }
+        />
+
+        {/* Redirección por defecto */}
         <Route path='*' element={<Navigate to='/' />} />
       </Route>
     </Routes>
   )
 }
+

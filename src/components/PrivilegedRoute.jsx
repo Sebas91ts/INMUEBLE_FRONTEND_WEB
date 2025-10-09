@@ -23,8 +23,10 @@ export default function PrivilegedRoute({ componente, accion, children }) {
     if (!loading) {
       const tienePermiso = privilegios.some((p) => {
         if (p.componente.toLowerCase() !== componente.toLowerCase()) return false;
-
+        
+         
         if (accionCampo) {
+       
           // Si hay acción específica
           return p[accionCampo] === true;
         } else {
@@ -61,7 +63,8 @@ export default function PrivilegedRoute({ componente, accion, children }) {
 
   // 🔐 Verificar nuevamente antes de mostrar contenido
   const tienePermiso = privilegios.some((p) => {
-    if (p.componente.toLowerCase() !== componente.toLowerCase()) return false;
+    if (p.componente?.trim().toLowerCase() !== componente?.trim().toLowerCase()) return false;
+
 
     if (accionCampo) {
       return p[accionCampo] === true;

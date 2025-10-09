@@ -1,23 +1,28 @@
-import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import ListadoInmuebles from "../inmuebles/ListadoInmuebles";
+import { useEffect, useState } from "react";
+import { getInmuebles } from "../../api/inmueble/inmuebles";
+
+import { useNavigate } from "react-router-dom";
 
 export default function Propiedades() {
-  const [params] = useSearchParams();
-  const nav = useNavigate();
-  const tipo = (params.get("tipo") || "").toLowerCase(); // venta | alquiler | anticretico | ""
+  const navigate = useNavigate();
+  const [tipo, setTipo] = useState(""); // venta | alquiler | anticretico | ""
+  const [inmuebles, setInmuebles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const setTipo = (value) => {
-    const url = value
-      ? `/propiedades?tipo=${encodeURIComponent(value)}`
-      : "/propiedades";
-    // replace:true para no crear una entrada de historial por cada click
-    nav(url, { replace: true });
-  };
-
-  // UX: al cambiar filtro, subimos al top (útil con listas largas)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await getInmuebles(tipo);
+        const { values: { inmuebles = [] } = {} } = data.data;
+        setInmuebles(inmuebles);
+      } catch (err) {
+        console.error("Error cargando inmuebles:", err);
+        setInmuebles([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [tipo]);
 
   const btnBase =
@@ -28,38 +33,53 @@ export default function Propiedades() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-4 flex items-center gap-2">
-        <button
-          onClick={() => setTipo("venta")}
-          aria-pressed={tipo === "venta"}
-          className={`${btnBase} ${tipo === "venta" ? btnOn : btnOff}`}
-        >
-          En venta
-        </button>
-        <button
-          onClick={() => setTipo("alquiler")}
-          aria-pressed={tipo === "alquiler"}
-          className={`${btnBase} ${tipo === "alquiler" ? btnOn : btnOff}`}
-        >
-          En alquiler
-        </button>
-        <button
-          onClick={() => setTipo("anticretico")}
-          aria-pressed={tipo === "anticretico"}
-          className={`${btnBase} ${tipo === "anticretico" ? btnOn : btnOff}`}
-        >
-          En anticrético
-        </button>
-        <button
-          onClick={() => setTipo("")}
-          aria-pressed={!tipo}
-          className={`${btnBase} ${!tipo ? btnOn : btnOff}`}
-        >
-          Todas
-        </button>
+        {["venta", "alquiler", "anticretico", ""].map((op) => (
+          <button
+            key={op || "todas"}
+            onClick={() => setTipo(op)}
+            className={`${btnBase} ${
+              tipo === op ? btnOn : btnOff
+            }`}
+          >
+            {op ? `En ${op}` : "Todas"}
+          </button>
+        ))}
       </div>
 
-      {/* Reutilizamos el mismo Listado pero con basePath público */}
-      <ListadoInmuebles tipo={tipo || undefined} basePath="/propiedades" />
+      {loading ? (
+        <div>Cargando inmuebles...</div>
+      ) : inmuebles.length ? (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {inmuebles.map((it) => (
+            <div
+  key={it.id}
+  className="bg-white rounded-2xl shadow border overflow-hidden cursor-pointer"
+  onClick={() => navigate(`/home/propiedades/${it.id}`)}
+>
+
+              <img
+                src={it.fotos?.[0]?.url}
+                alt={it.titulo}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h3 className="font-semibold text-lg">{it.titulo}</h3>
+                <p className="text-gray-600 text-sm">
+                  {it.direccion}, {it.ciudad}
+                </p>
+                <p className="text-blue-600 font-bold mt-2">
+                  ${Number(it.precio).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 capitalize mt-1">
+                  {it.tipo_operacion}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>No se encontraron inmuebles.</p>
+      )}
     </div>
   );
 }

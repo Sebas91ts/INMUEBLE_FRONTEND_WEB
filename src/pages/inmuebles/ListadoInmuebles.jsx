@@ -10,7 +10,7 @@ export default function ListadoInmuebles({
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const nav = useNavigate();
-
+  
   // Helpers para mejorar calidad de imagen y normalizar URLs
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   const normalizeUrl = (u) => {

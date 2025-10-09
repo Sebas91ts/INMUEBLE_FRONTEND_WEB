@@ -1,14 +1,17 @@
 import instancia from "../axios";
 
-// ya lo tienes
 const BASE = "inmueble/listar_inmuebles";
 
-// GET lista (con o sin ?tipo=)
 export const getInmuebles = (tipo) => {
   const url = tipo ? `${BASE}?tipo=${encodeURIComponent(tipo)}` : BASE;
   return instancia.get(url);
+
+};
+export const listarInmuebles = () => {
+  return instancia.get("/inmueble/listar_anuncios_disponibles");
 };
 
-// ✅ NUEVO: GET detalle por id
-export const getInmuebleById = (id) => instancia.get(`inmueble/inmueble/${id}`);
-// ajusta a tu ruta real si es distinta (p.ej. "inmueble/obtener/<id>")
+export const getInmuebleById = (id) => {
+  return instancia.get(`inmueble/inmueble/${id}`);
+};
+

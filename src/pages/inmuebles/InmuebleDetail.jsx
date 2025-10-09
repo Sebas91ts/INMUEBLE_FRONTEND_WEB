@@ -51,19 +51,28 @@ export default function InmuebleDetail() {
   const [data, setData] = useState(state || null);
   const [loading, setLoading] = useState(!state);
 
-  // si recargas la página y no hay state, trae del backend por id
-  useEffect(() => {
-    if (state) return;
-    (async () => {
-      try {
-        const res = await getInmuebleById(id);
-        const d = res?.data?.values?.inmueble || res?.data?.values || res?.data;
-        setData(d);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, state]);
+  // si recargas la página y no hay state, trae del backend por i
+
+useEffect(() => {
+  if (state) return;
+  // 🔒 Validar que el id sea un número
+  if (!/^\d+$/.test(id)) {
+    console.warn("ID inválido:", id);
+    setLoading(false);
+    setData(null);
+    return;
+  }
+
+  (async () => {
+    try {
+      const res = await getInmuebleById(Number(id));
+      const d = res?.data?.values?.inmueble || res?.data?.values || res?.data;
+      setData(d);
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, [id, state]);
 
   const fotos = useMemo(() => {
     const arr = Array.isArray(data?.fotos) ? data.fotos : [];

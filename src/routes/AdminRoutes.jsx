@@ -13,10 +13,10 @@ import Contratos from '../pages/Contratos/Contratos'
 import UsuariosDashboard from '../pages/Usuarios/Usuarios'
 import EditarPerfil from '../pages/Dashboard/components/EditarPerfil'
 import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
-import EnVenta from "../pages/inmuebles/EnVenta";
-import EnAlquiler from "../pages/inmuebles/EnAlquiler";
-import EnAnticretico from "../pages/inmuebles/EnAnticretico";
-import InmuebleDetail from "../pages/inmuebles/InmuebleDetail";
+import EnVenta from '../pages/Inmuebles/EnVenta';
+import EnAlquiler from "../pages/Inmuebles/EnAlquiler";
+import EnAnticretico from "../pages/Inmuebles/EnAnticretico";
+import InmuebleDetail from "../pages/Inmuebles/InmuebleDetail";
 import Bitacora from '../pages/Bitacora/Bitacora'
 export default function AdminRoutes() {
   return (

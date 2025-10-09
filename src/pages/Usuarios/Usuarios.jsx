@@ -2,36 +2,89 @@ import { useState, useEffect } from 'react'
 import {
   Users,
   UserPlus,
-  UserRoundPlus,
   X,
   Loader2,
-  Pencil
+  Pencil,
+  Trash2,
+  Check
 } from 'lucide-react'
 import { useApi } from '../../hooks/useApi'
-import { getUsuarios } from '../../api/usuarios/usuarios'
-import AñadirCopropietarioModal from './components/AñadirCopropietarioModal'
-import AñadirGuardiaModal from './components/AñadirGuardiaModal'
+import {
+  getUsuarios,
+  eliminarUsuario,
+  activarUsuario
+} from '../../api/usuarios/usuarios'
 import EditarUsuarioModal from './components/EditarUsuarioModal'
+import ApprovalModal from '../../components/AprovalModal'
+
+function ConfirmModal({ isOpen, onClose, onConfirm, message }) {
+  if (!isOpen) return null
+  return (
+    <div className='fixed inset-0 flex items-center justify-center bg-black/40 z-50'>
+      <div className='bg-white p-6 rounded-xl shadow-lg w-full max-w-sm'>
+        <h3 className='text-lg font-bold mb-4'>Confirmación</h3>
+        <p className='mb-6'>{message}</p>
+        <div className='flex justify-end gap-3'>
+          <button onClick={onClose} className='px-4 py-2 border rounded-lg'>
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg'
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function UsuariosDashboard() {
   const [filterRole, setFilterRole] = useState('all')
-  const [showModalCopropietario, setShowModalCopropietario] = useState(false)
-  const [showModalGuardia, setShowModalGuardia] = useState(false)
   const [showModalEditar, setShowModalEditar] = useState(false)
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showModalAprobar, setShowModalAprobar] = useState(false)
+  const [verEliminados, setVerEliminados] = useState(false)
 
   const { data, error, loading, execute } = useApi(getUsuarios)
+  const { execute: executeEliminar } = useApi(eliminarUsuario)
+  const { execute: executeActivar } = useApi(activarUsuario)
 
   useEffect(() => {
     execute()
   }, [])
 
-  const usuarios = data?.data?.values || []
+  const usuarios = data?.data?.values?.usuarios || []
   console.log(usuarios)
-  const filteredUsuarios =
-    filterRole === 'all'
-      ? usuarios
-      : usuarios.filter((u) => u.rol_name.toLowerCase() === filterRole)
+  const filteredUsuarios = usuarios
+    .filter((u) => (verEliminados ? !u.is_active : u.is_active))
+    .filter(
+      (u) =>
+        filterRole === 'all' ||
+        (u.grupo_nombre?.toLowerCase() || '') === filterRole
+    )
+
+  const handleSuccess = () => {
+    setShowModalEditar(false)
+    execute()
+    setShowModalAprobar(true)
+  }
+
+  const handleEliminar = async () => {
+    if (!usuarioSeleccionado) return
+    await executeEliminar(usuarioSeleccionado.id)
+    setShowConfirmModal(false)
+    execute()
+    setShowModalAprobar(true)
+  }
+
+  const handleActivar = async (usuario) => {
+    await executeActivar(usuario.id)
+    execute()
+    setShowModalAprobar(true)
+  }
 
   if (loading) {
     return (
@@ -56,22 +109,12 @@ export default function UsuariosDashboard() {
         <h1 className='text-2xl font-bold text-gray-900'>
           Gestión de Usuarios
         </h1>
-        <div className='flex gap-2'>
-          <button
-            className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2'
-            onClick={() => setShowModalCopropietario(true)}
-          >
-            <UserPlus className='w-4 h-4' />
-            <span>Nuevo Copropietario</span>
-          </button>
-          <button
-            className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2'
-            onClick={() => setShowModalGuardia(true)}
-          >
-            <UserRoundPlus className='w-4 h-4' />
-            <span>Nuevo Personal</span>
-          </button>
-        </div>
+        <button
+          className='px-4 py-2 border rounded-lg'
+          onClick={() => setVerEliminados(!verEliminados)}
+        >
+          {verEliminados ? 'Ver Activos' : 'Ver Eliminados'}
+        </button>
       </div>
 
       {/* Filtro por rol */}
@@ -83,9 +126,8 @@ export default function UsuariosDashboard() {
         >
           <option value='all'>Todos los roles</option>
           <option value='administrador'>Administrador</option>
-          <option value='copropietario'>Copropietario</option>
-          <option value='guardia'>Guardia</option>
-          <option value='residente'>Residente</option>
+          <option value='agente'>Agente</option>
+          <option value='cliente'>Cliente</option>
         </select>
       </div>
 
@@ -100,6 +142,7 @@ export default function UsuariosDashboard() {
               <th className='px-4 py-2 text-left'>CI</th>
               <th className='px-4 py-2 text-left'>Teléfono</th>
               <th className='px-4 py-2 text-left'>Email</th>
+              <th className='px-4 py-2 text-left'>Ubicación</th>
               <th className='px-4 py-2 text-left'>Rol</th>
               <th className='px-4 py-2 text-left'>Acciones</th>
             </tr>
@@ -112,19 +155,42 @@ export default function UsuariosDashboard() {
                 <td className='px-4 py-2'>{u.nombre || ''}</td>
                 <td className='px-4 py-2'>{u.ci}</td>
                 <td className='px-4 py-2'>{u.telefono || ''}</td>
-                <td className='px-4 py-2'>{u.email}</td>
-                <td className='px-4 py-2'>{u.rol_name}</td>
-                <td className='px-4 py-2'>
-                  <button
-                    className='text-indigo-600 hover:text-indigo-800 flex items-center space-x-1'
-                    onClick={() => {
-                      setUsuarioSeleccionado(u)
-                      setShowModalEditar(true)
-                    }}
-                  >
-                    <Pencil className='w-4 h-4' />
-                    <span>Editar</span>
-                  </button>
+                <td className='px-4 py-2'>{u.correo}</td>
+                <td className='px-4 py-2'>{u.ubicacion || ''}</td>
+                <td className='px-4 py-2'>{u.grupo_nombre}</td>
+                <td className='px-4 py-2 flex gap-2'>
+                  {u.is_active ? (
+                    <>
+                      <button
+                        className='text-indigo-600 hover:text-indigo-800 flex items-center space-x-1'
+                        onClick={() => {
+                          setUsuarioSeleccionado(u)
+                          setShowModalEditar(true)
+                        }}
+                      >
+                        <Pencil className='w-4 h-4' />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        className='text-red-600 hover:text-red-800 flex items-center space-x-1'
+                        onClick={() => {
+                          setUsuarioSeleccionado(u)
+                          setShowConfirmModal(true)
+                        }}
+                      >
+                        <Trash2 className='w-4 h-4' />
+                        <span>Eliminar</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className='text-green-600 hover:text-green-800 flex items-center space-x-1'
+                      onClick={() => handleActivar(u)}
+                    >
+                      <Check className='w-4 h-4' />
+                      <span>Activar</span>
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -133,23 +199,28 @@ export default function UsuariosDashboard() {
       </div>
 
       {/* Modales */}
-      {showModalCopropietario && (
-        <AñadirCopropietarioModal
-          setShowModal={setShowModalCopropietario}
-          onSuccess={execute}
-        />
-      )}
-      {showModalGuardia && (
-        <AñadirGuardiaModal
-          setShowModal={setShowModalGuardia}
-          onSuccess={execute}
-        />
-      )}
       {showModalEditar && usuarioSeleccionado && (
         <EditarUsuarioModal
           usuario={usuarioSeleccionado}
           setShowModal={setShowModalEditar}
-          onSuccess={execute}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {showConfirmModal && usuarioSeleccionado && (
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleEliminar}
+          message={`¿Está seguro de eliminar al usuario "${usuarioSeleccionado.username}"?`}
+        />
+      )}
+
+      {showModalAprobar && (
+        <ApprovalModal
+          isOpen={showModalAprobar}
+          onClose={() => setShowModalAprobar(false)}
+          message='Operación realizada exitosamente'
         />
       )}
     </div>

@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to='/login' state={{ from: location }} replace />
   }
 
-  if (user?.grupo_id !== 1) {
+  if (user?.grupo_nombre !== 'administrador') {
     return <Navigate to='/' replace />
   }
 

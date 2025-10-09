@@ -3,7 +3,6 @@ import { login as apiLogin, register as apiRegister } from '../api/auth/login'
 import { getPrivilegios } from '../api/auth/privilegios'
 // Estados de autenticación
 const authReducer = (state, action) => {
-
   switch (action.type) {
     case 'LOGIN_START':
       return {
@@ -122,20 +121,25 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   // Guardar en localStorage cuando cambie el estado de auth
-useEffect(() => {
-  if (state.isAuthenticated && state.user && state.accessToken) {
-    const authData = {
-      user: state.user,
-      accessToken: state.accessToken,
-      refreshToken: state.refreshToken,
-      privilegios: state.privilegios // 👈 se agrega
+  useEffect(() => {
+    if (state.isAuthenticated && state.user && state.accessToken) {
+      const authData = {
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        privilegios: state.privilegios // 👈 se agrega
+      }
+      localStorage.setItem('authData', JSON.stringify(authData))
+    } else {
+      localStorage.removeItem('authData')
     }
-    localStorage.setItem('authData', JSON.stringify(authData))
-  } else {
-    localStorage.removeItem('authData')
-  }
-}, [state.isAuthenticated, state.user, state.accessToken, state.refreshToken, state.privilegios])
-
+  }, [
+    state.isAuthenticated,
+    state.user,
+    state.accessToken,
+    state.refreshToken,
+    state.privilegios
+  ])
 
   // Verificar si el token es válido
   const isTokenValid = (token) => {
@@ -151,72 +155,14 @@ useEffect(() => {
   }
   // Login
   const login = async (credentials) => {
-  dispatch({ type: 'LOGIN_START' })
-
-  try {
-    const response = await apiLogin(credentials.username, credentials.password)
-    const values = response.data.values
-
-    dispatch({
-      type: 'LOGIN_SUCCESS',
-      payload: {
-        user: {
-          id: values.usuario.id,
-          nombre: values.usuario.nombre,
-          username: values.usuario.username,
-          correo: values.usuario.correo,
-          grupo_id: values.usuario.grupo_id,
-          grupo_nombre: values.usuario.grupo_nombre,
-          ci: values.usuario.ci,
-          telefono: values.usuario.telefono,
-          ubicacion: values.usuario.ubicacion,
-          fecha_nacimiento: values.usuario.fecha_nacimiento,
-          is_active: values.usuario.is_active,
-          is_staff: values.usuario.is_staff
-        },
-        accessToken: values.token
-      }
-    })
-
-    // 🔹 Obtener privilegios
-    const privRes = await getPrivilegios(values.token)
-    if (privRes.data.status === 1) {
-      dispatch({
-        type: 'SET_PRIVILEGIOS',
-        payload: privRes.data.values // tu backend devuelve un array plano
-      })
-    }
-
-    return { success: true, data: values }
-  } catch (error) {
-    dispatch({
-      type: 'LOGIN_FAILURE',
-      payload: error.response?.data?.message || error.message
-    })
-    return {
-      success: false,
-      error: error.response?.data?.message || error.message
-    }
-  }
-}
-
-  // Registro
-  const register = async (userData) => {
     dispatch({ type: 'LOGIN_START' })
 
     try {
-      const response = await apiRegister(
-        userData.username,
-        userData.password,
-        userData.nombre,
-        userData.correo,
-        userData.ci,
-        userData.telefono,
-        userData.ubicacion,
-        userData.fecha_nacimiento
+      const response = await apiLogin(
+        credentials.username,
+        credentials.password
       )
-
-      const { values } = response.data // 👈 extraemos values directo
+      const values = response.data.values
 
       dispatch({
         type: 'LOGIN_SUCCESS',
@@ -227,6 +173,7 @@ useEffect(() => {
             username: values.usuario.username,
             correo: values.usuario.correo,
             grupo_id: values.usuario.grupo_id,
+            grupo_nombre: values.usuario.grupo_nombre,
             ci: values.usuario.ci,
             telefono: values.usuario.telefono,
             ubicacion: values.usuario.ubicacion,
@@ -238,7 +185,98 @@ useEffect(() => {
         }
       })
 
+      // 🔹 Obtener privilegios
+      const privRes = await getPrivilegios(values.token)
+      if (privRes.data.status === 1) {
+        dispatch({
+          type: 'SET_PRIVILEGIOS',
+          payload: privRes.data.values // tu backend devuelve un array plano
+        })
+      }
+
       return { success: true, data: values }
+    } catch (error) {
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: error.response?.data?.message || error.message
+      })
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      }
+    }
+  }
+
+  // Registro
+  const register = async (userData) => {
+    dispatch({ type: 'LOGIN_START' })
+
+    try {
+      const payload = {
+        username: userData.username,
+        password: userData.password,
+        nombre: userData.nombre,
+        correo: userData.correo,
+        ci: userData.ci,
+        telefono: userData.telefono,
+        ubicacion: userData.ubicacion,
+        numero_licencia: userData?.numero_licencia,
+        experiencia: userData?.experiencia,
+        fecha_nacimiento: userData.fecha_nacimiento,
+        grupo_id: userData.grupo_id
+      }
+
+      const response = await apiRegister(payload)
+      const { data } = response
+
+      // 🔹 Manejar error interno de la API
+      if (data.error) {
+        dispatch({
+          type: 'LOGIN_FAILURE',
+          payload: data.message || 'Error en la solicitud'
+        })
+        return {
+          success: false,
+          error: data.message || 'Error en la solicitud'
+        }
+      }
+
+      const values = data.values
+
+      if (userData.grupo_id === 1) {
+        // Cliente: creamos usuario y token
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: {
+            user: {
+              id: values.usuario.id,
+              nombre: values.usuario.nombre,
+              username: values.usuario.username,
+              correo: values.usuario.correo,
+              grupo_id: values.usuario.grupo_id,
+              ci: values.usuario.ci,
+              telefono: values.usuario.telefono,
+              ubicacion: values.usuario.ubicacion,
+              fecha_nacimiento: values.usuario.fecha_nacimiento,
+              is_active: values.usuario.is_active,
+              is_staff: values.usuario.is_staff
+            },
+            accessToken: values.token
+          }
+        })
+
+        return { success: true, data: values }
+      } else {
+        // Agente: no hay usuario, solo mensaje de solicitud
+        dispatch({
+          type: 'LOGIN_FAILURE',
+          payload: null
+        })
+        return {
+          success: true,
+          message: values.message || 'Solicitud de agente enviada'
+        }
+      }
     } catch (error) {
       dispatch({
         type: 'LOGIN_FAILURE',
@@ -268,16 +306,15 @@ useEffect(() => {
   }
 
   const tienePermiso = (componente, accion) => {
-  if (!state.privilegios || state.privilegios.length === 0) return false
+    if (!state.privilegios || state.privilegios.length === 0) return false
 
-  const comp = state.privilegios.find(
-    (p) => p.componente.toLowerCase() === componente.toLowerCase()
-  )
+    const comp = state.privilegios.find(
+      (p) => p.componente.toLowerCase() === componente.toLowerCase()
+    )
 
-  if (!comp) return false
-  return comp[`puede_${accion}`] === true
-}
-
+    if (!comp) return false
+    return comp[`puede_${accion}`] === true
+  }
 
   // Actualizar información del usuario
   const updateUser = (userData) => {

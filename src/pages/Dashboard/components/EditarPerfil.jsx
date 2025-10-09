@@ -29,13 +29,22 @@ export default function EditarPerfil() {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const result = await execute(user.id, formData)
+
+    // 🔹 Crear copia del formData
+    const dataToSend = { ...formData }
+
+    // 🔹 Si la contraseña está vacía, eliminarla
+    if (!dataToSend.password || dataToSend.password.trim() === '') {
+      delete dataToSend.password
+    }
+    console.log(dataToSend)
+
+    const result = await execute(user.id, dataToSend)
 
     if (result?.data?.status === 1) {
-      updateUser({ ...user, ...formData })
+      updateUser({ ...user, ...dataToSend })
       setSuccessModal(true)
     } else {
       setErrorMessage(result?.data?.message || 'Ocurrió un error')

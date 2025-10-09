@@ -1,10 +1,13 @@
 import { Bell } from 'lucide-react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import { useAuth } from '../../hooks/useAuth'
+import UserAvatar from './components/UserAvatar'
 
 export default function CondominioSmartDashboard() {
   // Datos simulados para el dashboard
-
+  const { user } = useAuth()
+  console.log('Usuario', user)
   return (
     <div className='min-h-screen bg-gray-50 flex'>
       {/* Sidebar */}
@@ -27,7 +30,7 @@ export default function CondominioSmartDashboard() {
                 <Bell className='w-5 h-5' />
                 <span className='absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full'></span>
               </button>
-              <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full'></div>
+              <UserAvatar user={user} />
             </div>
           </div>
         </header>

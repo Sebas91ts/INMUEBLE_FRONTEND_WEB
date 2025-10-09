@@ -5,7 +5,9 @@ import PrivilegedRoute from '../components/PrivilegedRoute'
 
 import Dashboard from '../pages/Dashboard/Dashboard'
 import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
-
+import SolicitudesAgentes from '../pages/SolicitudAgente/SolicitudAgente'
+import Contratos from '../pages/Contratos/Contratos'
+import UsuariosDashboard from '../pages/Usuarios/Usuarios'
 
 import Bitacora from '../pages/Bitacora/Bitacora'
 export default function AdminRoutes() {
@@ -19,11 +21,10 @@ export default function AdminRoutes() {
           </ProtectedRoute>
         }
       >
-
         <Route index element={<EstadisticasDashboard />} />
         <Route path='estadisticas' element={<EstadisticasDashboard />} />
-                 {/* Bitácora */}
-       <Route
+        {/* Bitácora */}
+        <Route
           path='bitacora'
           element={
             <PrivilegedRoute componente='bitacora'>
@@ -31,8 +32,12 @@ export default function AdminRoutes() {
             </PrivilegedRoute>
           }
         />
+
+        <Route path='solicitud-agente' element={<SolicitudesAgentes />} />
+        <Route path='contratos' element={<Contratos />} />
+        <Route path='usuarios' element={<UsuariosDashboard />} />
       </Route>
-        
+
       <Route path='*' element={<Navigate to='/dashboard' />} />
     </Routes>
   )

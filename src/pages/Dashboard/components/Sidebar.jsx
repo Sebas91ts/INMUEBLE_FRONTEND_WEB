@@ -11,7 +11,8 @@ import {
   Menu,
   User,
   LogOut,
-  X,
+  ClipboardList,
+  X
 } from 'lucide-react'
 
 // Menú base
@@ -23,31 +24,48 @@ const baseMenuItems = [
     label: 'Inmuebles',
     subItems: [
       { id: 'venta', label: 'En venta', path: '/dashboard/inmuebles/venta' },
-      { id: 'alquiler', label: 'En alquiler', path: '/dashboard/inmuebles/alquiler' },
-      { id: 'anticretico', label: 'En anticrético', path: '/dashboard/inmuebles/anticretico' },
-    ],
+      {
+        id: 'alquiler',
+        label: 'En alquiler',
+        path: '/dashboard/inmuebles/alquiler'
+      },
+      {
+        id: 'anticretico',
+        label: 'En anticrético',
+        path: '/dashboard/inmuebles/anticretico'
+      }
+    ]
+  },
+  {
+    id: 'usuarios',
+    icon: User,
+    label: 'Usuarios',
+    path: '/dashboard/usuarios'
   },
   {
     id: 'contrato',
     icon: FileText,
     label: 'Contratos',
-    subItems: [
-      { id: 'crear', label: 'Registrar contrato', path: '/dashboard/contratos/crear' },
-      { id: 'listar', label: 'Ver contratos', path: '/dashboard/contratos' },
-    ],
+    path: '/dashboard/contratos'
   },
   {
     id: 'chat',
     icon: MessageSquare,
     label: 'Chat',
-    path: '/dashboard/chat',
+    path: '/dashboard/chat'
   },
-    {
+  {
     id: 'bitacora',
     icon: FileText,
     label: 'Bitácora',
-    path: '/dashboard/bitacora',
+    path: '/dashboard/bitacora'
   },
+  {
+    id: 'solicitudes',
+    icon: ClipboardList,
+    label: 'Solicitudes de agentes',
+    path: '/dashboard/solicitud-agente'
+  }
 ]
 
 export default function Sidebar() {
@@ -58,22 +76,27 @@ export default function Sidebar() {
   const { privilegios, loading } = usePrivilegios()
 
   if (loading) {
-    return <div className="p-4 text-gray-500">Cargando menú...</div>
+    return <div className='p-4 text-gray-500'>Cargando menú...</div>
   }
 
   // Si el usuario es administrador, tiene acceso a todo
   const esAdmin = user?.grupo_nombre.toLowerCase() === 'administrador'
   // 🔍 Filtrar solo los componentes con al menos un privilegio TRUE
   const privilegiosActivos = esAdmin
-    ? baseMenuItems.map(item => item.id) // admin = todo
+    ? baseMenuItems.map((item) => item.id) // admin = todo
     : privilegios
-        .filter(p =>
-          p.puede_crear || p.puede_actualizar || p.puede_eliminar || p.puede_leer || p.puede_activar
+        .filter(
+          (p) =>
+            p.puede_crear ||
+            p.puede_actualizar ||
+            p.puede_eliminar ||
+            p.puede_leer ||
+            p.puede_activar
         )
-        .map(p => p.componente.toLowerCase())
+        .map((p) => p.componente.toLowerCase())
 
   // 🧩 Filtrar menú base según los privilegios
-  const menuItems = baseMenuItems.filter(item => {
+  const menuItems = baseMenuItems.filter((item) => {
     if (item.id === 'dashboard') return true // Dashboard siempre visible
     return privilegiosActivos.includes(item.id.toLowerCase())
   })
@@ -92,11 +115,17 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`bg-white shadow-xl transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} flex flex-col`}
+      className={`bg-white shadow-xl transition-all duration-300 ${
+        sidebarOpen ? 'w-64' : 'w-20'
+      } flex flex-col`}
     >
       {/* Encabezado */}
       <div className='p-6 border-b border-gray-200 flex items-center justify-between'>
-        <div className={`flex items-center space-x-3 ${!sidebarOpen && 'justify-center'}`}>
+        <div
+          className={`flex items-center space-x-3 ${
+            !sidebarOpen && 'justify-center'
+          }`}
+        >
           <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center'>
             <Building className='w-5 h-5 text-white' />
           </div>
@@ -111,7 +140,11 @@ export default function Sidebar() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className='p-1.5 rounded-lg hover:bg-gray-100 transition-colors'
         >
-          {sidebarOpen ? <X className='w-4 h-4' /> : <Menu className='w-4 h-4' />}
+          {sidebarOpen ? (
+            <X className='w-4 h-4' />
+          ) : (
+            <Menu className='w-4 h-4' />
+          )}
         </button>
       </div>
 
@@ -123,8 +156,12 @@ export default function Sidebar() {
           </div>
           {sidebarOpen && (
             <div className='flex-1 min-w-0'>
-              <p className='text-sm font-medium text-gray-900 truncate'>{getUserDisplayName()}</p>
-              <p className='text-xs text-gray-500 truncate'>{user?.grupo_nombre}</p>
+              <p className='text-sm font-medium text-gray-900 truncate'>
+                {getUserDisplayName()}
+              </p>
+              <p className='text-xs text-gray-500 truncate'>
+                {user?.grupo_nombre}
+              </p>
               <p className='text-xs text-gray-400 truncate'>{user?.correo}</p>
             </div>
           )}
@@ -133,17 +170,23 @@ export default function Sidebar() {
 
       {/* Menú dinámico */}
       <nav className='flex-1 p-4 space-y-2'>
-        {menuItems.map(item => (
+        {menuItems.map((item) => (
           <div key={item.id}>
             {item.subItems ? (
               <button
-                onClick={() => setOpenSubMenu(openSubMenu === item.id ? null : item.id)}
+                onClick={() =>
+                  setOpenSubMenu(openSubMenu === item.id ? null : item.id)
+                }
                 className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                  openSubMenu === item.id ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  openSubMenu === item.id
+                    ? 'bg-blue-50 text-blue-700 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <item.icon className={`w-5 h-5 ${!sidebarOpen && 'mx-auto'}`} />
-                {sidebarOpen && <span className='font-medium'>{item.label}</span>}
+                {sidebarOpen && (
+                  <span className='font-medium'>{item.label}</span>
+                )}
                 {sidebarOpen && (
                   <ChevronRight
                     className={`w-4 h-4 ml-auto transition-transform ${
@@ -158,25 +201,31 @@ export default function Sidebar() {
                 end
                 className={({ isActive }) =>
                   `w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                    isActive ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`
                 }
               >
                 <item.icon className={`w-5 h-5 ${!sidebarOpen && 'mx-auto'}`} />
-                {sidebarOpen && <span className='font-medium'>{item.label}</span>}
+                {sidebarOpen && (
+                  <span className='font-medium'>{item.label}</span>
+                )}
               </NavLink>
             )}
 
             {/* Submenú */}
             {item.subItems && openSubMenu === item.id && sidebarOpen && (
               <div className='ml-8 mt-1 space-y-1'>
-                {item.subItems.map(sub => (
+                {item.subItems.map((sub) => (
                   <NavLink
                     key={sub.id}
                     to={sub.path}
                     className={({ isActive }) =>
                       `w-full block px-3 py-2 rounded-xl transition-all duration-200 ${
-                        isActive ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        isActive
+                          ? 'bg-blue-100 text-blue-700 shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`
                     }
                   >

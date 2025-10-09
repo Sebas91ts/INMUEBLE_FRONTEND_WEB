@@ -9,14 +9,9 @@ import {
 } from 'lucide-react'
 import { useApi } from '../../hooks/useApi'
 import { getUsuarios } from '../../api/usuarios/usuarios'
-import AñadirCopropietarioModal from './components/AñadirCopropietarioModal'
-import AñadirGuardiaModal from './components/AñadirGuardiaModal'
-import EditarUsuarioModal from './components/EditarUsuarioModal'
 
 export default function UsuariosDashboard() {
   const [filterRole, setFilterRole] = useState('all')
-  const [showModalCopropietario, setShowModalCopropietario] = useState(false)
-  const [showModalGuardia, setShowModalGuardia] = useState(false)
   const [showModalEditar, setShowModalEditar] = useState(false)
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null)
 
@@ -25,13 +20,14 @@ export default function UsuariosDashboard() {
   useEffect(() => {
     execute()
   }, [])
-
-  const usuarios = data?.data?.values || []
+  const usuarios = data?.data?.values?.usuarios || []
   console.log(usuarios)
   const filteredUsuarios =
     filterRole === 'all'
       ? usuarios
-      : usuarios.filter((u) => u.rol_name.toLowerCase() === filterRole)
+      : usuarios.filter(
+          (u) => (u.grupo_nombre?.toLowerCase() || '') === filterRole
+        )
 
   if (loading) {
     return (
@@ -56,22 +52,6 @@ export default function UsuariosDashboard() {
         <h1 className='text-2xl font-bold text-gray-900'>
           Gestión de Usuarios
         </h1>
-        <div className='flex gap-2'>
-          <button
-            className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2'
-            onClick={() => setShowModalCopropietario(true)}
-          >
-            <UserPlus className='w-4 h-4' />
-            <span>Nuevo Copropietario</span>
-          </button>
-          <button
-            className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2'
-            onClick={() => setShowModalGuardia(true)}
-          >
-            <UserRoundPlus className='w-4 h-4' />
-            <span>Nuevo Personal</span>
-          </button>
-        </div>
       </div>
 
       {/* Filtro por rol */}
@@ -83,9 +63,8 @@ export default function UsuariosDashboard() {
         >
           <option value='all'>Todos los roles</option>
           <option value='administrador'>Administrador</option>
-          <option value='copropietario'>Copropietario</option>
-          <option value='guardia'>Guardia</option>
-          <option value='residente'>Residente</option>
+          <option value='agente'>Agente</option>
+          <option value='cliente'>Cliente</option>
         </select>
       </div>
 
@@ -112,8 +91,8 @@ export default function UsuariosDashboard() {
                 <td className='px-4 py-2'>{u.nombre || ''}</td>
                 <td className='px-4 py-2'>{u.ci}</td>
                 <td className='px-4 py-2'>{u.telefono || ''}</td>
-                <td className='px-4 py-2'>{u.email}</td>
-                <td className='px-4 py-2'>{u.rol_name}</td>
+                <td className='px-4 py-2'>{u.correo}</td>
+                <td className='px-4 py-2'>{u.grupo_nombre}</td>
                 <td className='px-4 py-2'>
                   <button
                     className='text-indigo-600 hover:text-indigo-800 flex items-center space-x-1'
@@ -133,18 +112,6 @@ export default function UsuariosDashboard() {
       </div>
 
       {/* Modales */}
-      {showModalCopropietario && (
-        <AñadirCopropietarioModal
-          setShowModal={setShowModalCopropietario}
-          onSuccess={execute}
-        />
-      )}
-      {showModalGuardia && (
-        <AñadirGuardiaModal
-          setShowModal={setShowModalGuardia}
-          onSuccess={execute}
-        />
-      )}
       {showModalEditar && usuarioSeleccionado && (
         <EditarUsuarioModal
           usuario={usuarioSeleccionado}

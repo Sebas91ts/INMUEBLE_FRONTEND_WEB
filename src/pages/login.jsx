@@ -7,8 +7,6 @@ import {
   User,
   Mail,
   Phone,
-  MapPin,
-  Calendar,
   IdCard,
   AlertCircle
 } from 'lucide-react'
@@ -17,6 +15,7 @@ import { useAuth } from '../hooks/useAuth'
 export default function LoginForm() {
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
+  const [userType, setUserType] = useState('cliente') // Cliente o Agente
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -25,9 +24,12 @@ export default function LoginForm() {
     ci: '',
     telefono: '',
     ubicacion: '',
-    fecha_nacimiento: ''
+    fecha_nacimiento: '',
+    numero_licencia: '',
+    experiencia: 0
   })
   const [errors, setErrors] = useState({})
+  const [successMessage, setSuccessMessage] = useState('')
 
   const { login, register, loading, error, clearError } = useAuth()
   const navigate = useNavigate()
@@ -39,42 +41,86 @@ export default function LoginForm() {
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
     if (error) clearError()
+    if (successMessage) setSuccessMessage('')
   }
 
   const validateForm = () => {
     const newErrors = {}
     if (!isLogin) {
-      if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido'
-      if (!formData.correo.trim()) newErrors.correo = 'El correo es requerido'
-      if (!formData.ci.trim()) newErrors.ci = 'El CI es requerido'
-      if (!formData.telefono.trim())
-        newErrors.telefono = 'El teléfono es requerido'
-      if (!formData.ubicacion.trim())
-        newErrors.ubicacion = 'La ubicación es requerida'
-      if (!formData.fecha_nacimiento.trim())
-        newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida'
+      if (!formData.username.trim())
+        newErrors.username = 'El username es requerido'
+      if (!formData.password.trim())
+        newErrors.password = 'La contraseña es requerida'
+      else if (formData.password.length < 3)
+        newErrors.password = 'La contraseña debe tener al menos 3 caracteres'
+
+      if (userType === 'cliente') {
+        if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido'
+        if (!formData.correo.trim()) newErrors.correo = 'El correo es requerido'
+        if (!formData.ci.trim()) newErrors.ci = 'El CI es requerido'
+        if (!formData.telefono.trim())
+          newErrors.telefono = 'El teléfono es requerido'
+        if (!formData.ubicacion.trim())
+          newErrors.ubicacion = 'La ubicación es requerida'
+        if (!formData.fecha_nacimiento.trim())
+          newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida'
+      } else if (userType === 'agente') {
+        if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido'
+        if (!formData.correo.trim()) newErrors.correo = 'El correo es requerido'
+        if (!formData.ci.trim()) newErrors.ci = 'El CI es requerido'
+        if (!formData.telefono.trim())
+          newErrors.telefono = 'El teléfono es requerido'
+        if (!formData.numero_licencia.trim())
+          newErrors.numero_licencia = 'La licencia es requerida'
+        if (!formData.experiencia && formData.experiencia !== 0)
+          newErrors.experiencia = 'La experiencia es requerida'
+      }
     }
-    if (!formData.username.trim())
-      newErrors.username = 'El username es requerido'
-    if (!formData.password.trim())
-      newErrors.password = 'La contraseña es requerida'
-    else if (formData.password.length < 3)
-      newErrors.password = 'La contraseña debe tener al menos 3 caracteres'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
-
   const handleSubmit = async () => {
     if (!validateForm()) return
+
+    const payload = {
+      ...formData,
+      grupo_id: !isLogin && userType === 'cliente' ? 1 : 2
+    }
     const result = isLogin
       ? await login({
           username: formData.username,
           password: formData.password
         })
-      : await register(formData)
+      : await register(payload)
 
-    if (result.success) navigate(from, { replace: true })
+    if (!isLogin) {
+      if (result.success) {
+        if (userType === 'cliente') {
+          navigate(from, { replace: true })
+        } else {
+          setSuccessMessage(
+            'Solicitud de agente enviada correctamente. Espera aprobación.'
+          )
+        }
+      } else if (result.values) {
+        // Mostrar errores específicos por campo
+        const apiErrors = {}
+        for (const key in result.values) {
+          // algunos campos pueden devolver varios mensajes
+          apiErrors[key] = result.values[key].join(', ')
+        }
+        setErrors(apiErrors)
+      } else if (result.error) {
+        setErrors({ general: result.error })
+      }
+    } else {
+      if (result.success) {
+        navigate(from, { replace: true })
+      } else if (result.error) {
+        setErrors({ general: result.error })
+      }
+    }
   }
 
   const toggleMode = () => {
@@ -88,8 +134,12 @@ export default function LoginForm() {
       ci: '',
       telefono: '',
       ubicacion: '',
-      fecha_nacimiento: ''
+      fecha_nacimiento: '',
+      numero_licencia: '',
+      experiencia: 0
     })
+    setUserType('cliente')
+    setSuccessMessage('')
     if (error) clearError()
   }
 
@@ -97,7 +147,7 @@ export default function LoginForm() {
     <div className='min-h-screen bg-white/95 backdrop-blur-sm flex items-center justify-center p-4'>
       <div className='bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 w-full max-w-md'>
         {/* Header */}
-        <div className='text-center mb-8'>
+        <div className='text-center mb-6'>
           <div className='mx-auto w-16 h-16 bg-stone-900 rounded-2xl flex items-center justify-center mb-4 shadow-lg'>
             <Lock className='text-white' size={28} />
           </div>
@@ -109,15 +159,48 @@ export default function LoginForm() {
           </p>
         </div>
 
-        {/* Error global */}
+        {/* Switch Cliente / Agente */}
+        {!isLogin && (
+          <div className='flex items-center justify-center mb-6'>
+            <span className='mr-3 text-sm font-medium text-stone-700'>
+              Cliente
+            </span>
+            <button
+              type='button'
+              onClick={() =>
+                setUserType(userType === 'cliente' ? 'agente' : 'cliente')
+              }
+              className={`w-14 h-7 flex items-center rounded-full p-1 transition-colors duration-300 ${
+                userType === 'agente' ? 'bg-stone-900' : 'bg-gray-300'
+              }`}
+              disabled={loading}
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
+                  userType === 'agente' ? 'translate-x-7' : ''
+                }`}
+              />
+            </button>
+            <span className='ml-3 text-sm font-medium text-stone-700'>
+              Agente
+            </span>
+          </div>
+        )}
+
+        {/* Mensajes */}
         {error && (
-          <div className='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2'>
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2'>
             <AlertCircle className='text-red-500 flex-shrink-0' size={20} />
             <span className='text-red-700 text-sm'>{error}</span>
           </div>
         )}
+        {successMessage && (
+          <div className='mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm'>
+            {successMessage}
+          </div>
+        )}
 
-        {/* Form */}
+        {/* Formulario */}
         <div className='space-y-6'>
           {!isLogin && (
             <>
@@ -134,6 +217,7 @@ export default function LoginForm() {
                   <input
                     type='text'
                     name='nombre'
+                    placeholder='Nombre completo'
                     value={formData.nombre}
                     onChange={handleInputChange}
                     disabled={loading}
@@ -142,7 +226,6 @@ export default function LoginForm() {
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
-                    placeholder='Juan Pérez'
                   />
                 </div>
                 {errors.nombre && (
@@ -163,6 +246,7 @@ export default function LoginForm() {
                   <input
                     type='email'
                     name='correo'
+                    placeholder='oKm0Y@example.com'
                     value={formData.correo}
                     onChange={handleInputChange}
                     disabled={loading}
@@ -171,7 +255,6 @@ export default function LoginForm() {
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
-                    placeholder='ejemplo@correo.com'
                   />
                 </div>
                 {errors.correo && (
@@ -192,6 +275,7 @@ export default function LoginForm() {
                   <input
                     type='text'
                     name='ci'
+                    placeholder='CI'
                     value={formData.ci}
                     onChange={handleInputChange}
                     disabled={loading}
@@ -200,7 +284,6 @@ export default function LoginForm() {
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
-                    placeholder='1234567'
                   />
                 </div>
                 {errors.ci && (
@@ -208,95 +291,169 @@ export default function LoginForm() {
                 )}
               </div>
 
-              {/* Teléfono */}
-              <div>
-                <label className='block text-sm font-medium text-stone-900 mb-2'>
-                  Teléfono
-                </label>
-                <div className='relative'>
-                  <Phone
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
-                    size={20}
-                  />
-                  <input
-                    type='text'
-                    name='telefono'
-                    value={formData.telefono}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                    className={`w-full pl-11 pr-4 py-3 border rounded-lg ${
-                      errors.telefono
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    placeholder='78945613'
-                  />
-                </div>
-                {errors.telefono && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.telefono}</p>
-                )}
-              </div>
+              {/* Campos específicos */}
+              {userType === 'cliente' && (
+                <>
+                  {/* Teléfono */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Teléfono
+                    </label>
+                    <div className='relative'>
+                      <Phone
+                        className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
+                        size={20}
+                      />
+                      <input
+                        type='text'
+                        name='telefono'
+                        placeholder='Teléfono'
+                        value={formData.telefono}
+                        onChange={handleInputChange}
+                        disabled={loading}
+                        className={`w-full pl-11 pr-4 py-3 border rounded-lg ${
+                          errors.telefono
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      />
+                    </div>
+                    {errors.telefono && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.telefono}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Ubicación */}
-              <div>
-                <label className='block text-sm font-medium text-stone-900 mb-2'>
-                  Ubicación
-                </label>
-                <div className='relative'>
-                  <MapPin
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
-                    size={20}
-                  />
-                  <input
-                    type='text'
-                    name='ubicacion'
-                    value={formData.ubicacion}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                    className={`w-full pl-11 pr-4 py-3 border rounded-lg ${
-                      errors.ubicacion
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    placeholder='La Paz - Bolivia'
-                  />
-                </div>
-                {errors.ubicacion && (
-                  <p className='text-red-500 text-sm mt-1'>
-                    {errors.ubicacion}
-                  </p>
-                )}
-              </div>
+                  {/* Ubicación */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Ubicación
+                    </label>
+                    <input
+                      type='text'
+                      name='ubicacion'
+                      placeholder='Santa Cruz - Bolivia'
+                      value={formData.ubicacion}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                        errors.ubicacion
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    {errors.ubicacion && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.ubicacion}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Fecha de nacimiento */}
-              <div>
-                <label className='block text-sm font-medium text-stone-900 mb-2'>
-                  Fecha de nacimiento
-                </label>
-                <div className='relative'>
-                  <Calendar
-                    className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
-                    size={20}
-                  />
-                  <input
-                    type='date'
-                    name='fecha_nacimiento'
-                    value={formData.fecha_nacimiento}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                    className={`w-full pl-11 pr-4 py-3 border rounded-lg ${
-                      errors.fecha_nacimiento
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  />
-                </div>
-                {errors.fecha_nacimiento && (
-                  <p className='text-red-500 text-sm mt-1'>
-                    {errors.fecha_nacimiento}
-                  </p>
-                )}
-              </div>
+                  {/* Fecha de nacimiento */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Fecha de nacimiento
+                    </label>
+                    <input
+                      type='date'
+                      name='fecha_nacimiento'
+                      value={formData.fecha_nacimiento}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                        errors.fecha_nacimiento
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    {errors.fecha_nacimiento && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.fecha_nacimiento}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {userType === 'agente' && (
+                <>
+                  {/* Teléfono */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Teléfono
+                    </label>
+                    <input
+                      type='text'
+                      name='telefono'
+                      value={formData.telefono}
+                      placeholder='Teléfono'
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                        errors.telefono
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    {errors.telefono && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.telefono}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Número de licencia */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Número de licencia
+                    </label>
+                    <input
+                      type='text'
+                      name='numero_licencia'
+                      value={formData.numero_licencia}
+                      placeholder='Número de licencia'
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                        errors.numero_licencia
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    {errors.numero_licencia && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.numero_licencia}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Experiencia */}
+                  <div>
+                    <label className='block text-sm font-medium text-stone-900 mb-2'>
+                      Experiencia (años)
+                    </label>
+                    <input
+                      type='number'
+                      name='experiencia'
+                      placeholder='Experiencia'
+                      value={formData.experiencia}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                        errors.experiencia
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    />
+                    {errors.experiencia && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        {errors.experiencia}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -305,25 +462,19 @@ export default function LoginForm() {
             <label className='block text-sm font-medium text-stone-900 mb-2'>
               Nombre de usuario
             </label>
-            <div className='relative'>
-              <User
-                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
-                size={20}
-              />
-              <input
-                type='text'
-                name='username'
-                value={formData.username}
-                onChange={handleInputChange}
-                disabled={loading}
-                className={`w-full pl-11 pr-4 py-3 border rounded-lg ${
-                  errors.username
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-                placeholder='username'
-              />
-            </div>
+            <input
+              type='text'
+              name='username'
+              placeholder='Nombre de usuario'
+              value={formData.username}
+              onChange={handleInputChange}
+              disabled={loading}
+              className={`w-full pl-3 pr-4 py-3 border rounded-lg ${
+                errors.username
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            />
             {errors.username && (
               <p className='text-red-500 text-sm mt-1'>{errors.username}</p>
             )}
@@ -335,17 +486,13 @@ export default function LoginForm() {
               Contraseña
             </label>
             <div className='relative'>
-              <Lock
-                className='absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-600'
-                size={20}
-              />
               <input
                 type={showPassword ? 'text' : 'password'}
                 name='password'
                 value={formData.password}
                 onChange={handleInputChange}
                 disabled={loading}
-                className={`w-full pl-11 pr-12 py-3 border rounded-lg ${
+                className={`w-full pl-3 pr-12 py-3 border rounded-lg ${
                   errors.password
                     ? 'border-red-500 bg-red-50'
                     : 'border-gray-300 hover:border-gray-400'
@@ -382,7 +529,7 @@ export default function LoginForm() {
           </button>
         </div>
 
-        {/* Toggle */}
+        {/* Toggle login / register */}
         <div className='mt-6 text-center'>
           <p className='text-stone-600'>
             {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}

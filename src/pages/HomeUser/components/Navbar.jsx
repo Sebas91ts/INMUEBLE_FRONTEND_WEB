@@ -23,7 +23,7 @@ export default function Navbar() {
       label: 'Propiedades',
       icon: Building2,
       componente: 'Inmueble',
-      protegido: true
+      protegido: false
     },
     {
       to: '/home/nosotros',

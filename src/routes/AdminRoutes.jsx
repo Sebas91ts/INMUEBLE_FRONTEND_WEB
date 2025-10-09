@@ -1,7 +1,7 @@
 // routes/AdminRoutes.jsx
-import { Route, Routes, Navigate } from 'react-router-dom'
-import ProtectedRoute from '../components/ProtectedRoutes'
-import PrivilegedRoute from '../components/PrivilegedRoute'
+import { Route, Routes, Navigate } from "react-router-dom";
+import ProtectedRoute from "../components/ProtectedRoutes";
+import PrivilegedRoute from "../components/PrivilegedRoute";
 
 import Dashboard from '../pages/Dashboard/Dashboard'
 import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
@@ -13,14 +13,18 @@ import Contratos from '../pages/Contratos/Contratos'
 import UsuariosDashboard from '../pages/Usuarios/Usuarios'
 import EditarPerfil from '../pages/Dashboard/components/EditarPerfil'
 import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
+import EnVenta from "../pages/inmuebles/EnVenta";
+import EnAlquiler from "../pages/inmuebles/EnAlquiler";
+import EnAnticretico from "../pages/inmuebles/EnAnticretico";
+import InmuebleDetail from "../pages/inmuebles/InmuebleDetail";
 import Bitacora from '../pages/Bitacora/Bitacora'
 export default function AdminRoutes() {
   return (
     <Routes>
       <Route
-        path='/dashboard'
+        path="/dashboard"
         element={
-          <ProtectedRoute requiredRole='admin'>
+          <ProtectedRoute requiredRole="admin">
             <Dashboard />
           </ProtectedRoute>
         }
@@ -30,13 +34,56 @@ export default function AdminRoutes() {
 
         {/* Bitácora */}
         <Route
-          path='bitacora'
+          path="bitacora"
           element={
-            <PrivilegedRoute componente='bitacora'>
+            <PrivilegedRoute componente="bitacora">
               <Bitacora />
             </PrivilegedRoute>
           }
         />
+             {/* === Inmuebles === */}
+        {/* Ruta base: si van a /dashboard/inmuebles, mostramos "En venta" por defecto */}
+        <Route
+          path="inmuebles"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <EnVenta />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path="inmuebles/venta"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <EnVenta />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path="inmuebles/alquiler"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <EnAlquiler />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path="inmuebles/anticretico"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <EnAnticretico />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path="inmuebles/:id"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <InmuebleDetail />
+            </PrivilegedRoute>
+          }
+        />
+
         <Route path="inmuebles/crear" element={<CreateInmueble />} />
         <Route path='permisos/grupos' element={<Grupos />} />
         <Route path='permisos/privilegios' element={<Privilegios />} />
@@ -47,7 +94,7 @@ export default function AdminRoutes() {
         <Route path='editar-perfil' element={<EditarPerfil />} />
       </Route>
 
-      <Route path='*' element={<Navigate to='/dashboard' />} />
+      <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
-  )
+  );
 }

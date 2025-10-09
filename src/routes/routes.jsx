@@ -1,40 +1,34 @@
 // routes/AppRoutes.jsx
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import LoginForm from '../pages/login'
-import AdminRoutes from './AdminRoutes'
-import UserRoutes from './UserRoutes'
-import HomeUser from '../pages/HomeUser/HomeUser'
-import Home from '../pages/HomeUser/ContentHomeUser'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import LoginForm from "../pages/login";
+import AdminRoutes from "./AdminRoutes";
+import UserRoutes from "./UserRoutes"; // ⬅️ usamos el router público completo
 
 export default function AppRoutes() {
-  const { isAuthenticated, loading, user } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
-  // Rutas protegidas solo para admin
+  // 👇 Si es admin, enviamos todo al router del dashboard (que ya maneja /dashboard/*)
   if (isAuthenticated && user?.grupo_id === 1) {
-    return <AdminRoutes />
+    return <AdminRoutes />;
   }
 
-  // Rutas públicas (cliente / Home) y login
+  // 👇 Público (cliente): montamos TODAS las rutas de UserRoutes en /*
   return (
     <Routes>
-      {/* Layout del cliente */}
-      <Route path='/' element={<HomeUser />}>
-        <Route index element={<Home />} />
-      </Route>
-
-      <Route path='/login' element={<LoginForm />} />
-      <Route path='*' element={<Navigate to='/' />} />
+      <Route path="/*" element={<UserRoutes />} />
+      <Route path="/login" element={<LoginForm />} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
-  )
+  );
 }
 
 // ################################
@@ -85,7 +79,8 @@ export default function AppRoutes() {
 //         <Route index element={<EstadisticasDashboard />} />
 //         <Route path='estadisticas' element={<EstadisticasDashboard />} />
 
-        {/* Inmuebles
+{
+  /* Inmuebles
         <Route
           path='inmuebles/venta'
           element={
@@ -111,8 +106,10 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Contratos */}
-        {/* <Route
+        {/* Contratos */
+}
+{
+  /* <Route
           path='contratos/crear'
           element={
             <PrivilegedRoute componente='contrato'>
@@ -129,18 +126,24 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Chat */}
-        {/* <Route
+        {/* Chat */
+}
+{
+  /* <Route
           path='chat'
           element={
             <PrivilegedRoute componente='chat'>
               <Chat />
             </PrivilegedRoute>
           }
-        /> */}
+        /> */
+}
 
-        {/* Bitácora */}
-        {/* <Route
+{
+  /* Bitácora */
+}
+{
+  /* <Route
           path='bitacora'
           element={
             <PrivilegedRoute componente='bitacora'>
@@ -158,4 +161,5 @@ export default function AppRoutes() {
   )
 }
 
-export default AppRoutes */}
+export default AppRoutes */
+}

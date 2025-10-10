@@ -24,28 +24,47 @@ const SolicitudInmueble = () => {
   const [approvalModal, setApprovalModal] = useState({ open: false, message: "" });
   const [errorModal, setErrorModal] = useState({ open: false, message: "" });
 
-  // 🔹 Cargar solicitudes segun filtro
+  // =====================================================
+  // 🔹 Cargar solicitudes según filtro
+  // =====================================================
   useEffect(() => {
     const load = async () => {
       try {
+        console.log("🚀 Llamando fetchSolicitudes con filtro:", filtro);
         const res = await fetchSolicitudes(filtro);
-        if (Array.isArray(res?.data)) {
-          setSolicitudes(res.data);
+        console.log("📦 Respuesta completa desde fetchSolicitudes:", res);
+
+        // Acepta múltiples estructuras del backend
+        const inmuebles =
+          Array.isArray(res?.data) ? res.data :
+          Array.isArray(res?.raw?.values?.inmuebles) ? res.raw.values.inmuebles :
+          Array.isArray(res?.values?.inmuebles) ? res.values.inmuebles :
+          Array.isArray(res?.values) ? res.values :
+          Array.isArray(res) ? res :
+          [];
+
+        console.log("✅ Inmuebles procesados:", inmuebles);
+
+        if (Array.isArray(inmuebles)) {
+          setSolicitudes(inmuebles);
         } else {
-          throw new Error("Respuesta inesperada del servidor");
+          console.warn("⚠️ Respuesta inesperada:", res);
+          throw new Error("Estructura inesperada en la respuesta del servidor");
         }
       } catch (err) {
-        console.error("Error cargando inmuebles:", err);
+        console.error("❌ Error exacto capturado:", err);
         setErrorModal({
           open: true,
-          message: "Error al cargar las solicitudes de inmuebles.",
+          message: "Error al cargar solicitudes de inmuebles.",
         });
       }
     };
     load();
   }, [fetchSolicitudes, filtro]);
 
+  // =====================================================
   // 🔹 Cambiar estado (Aprobar / Rechazar)
+  // =====================================================
   const handleCambiarEstado = async (id, nuevoEstado) => {
     try {
       const res = await ejecutarCambioEstado(id, nuevoEstado);
@@ -73,17 +92,12 @@ const SolicitudInmueble = () => {
     }
   };
 
+  // =====================================================
   // 🔹 Filtro + búsqueda
+  // =====================================================
   const solicitudesFiltradas = solicitudes.filter((s) => {
     const estado = (s.estado || "").toString().toLowerCase();
-    const estadoStr =
-      estado === "1"
-        ? "aprobado"
-        : estado === "2"
-        ? "rechazado"
-        : estado || "pendiente";
-
-    const coincideEstado = filtro === "todas" || estadoStr === filtro;
+    const coincideEstado = filtro === "todos" || estado === filtro;
     const q = busqueda.toLowerCase();
     const coincideBusqueda =
       (s.titulo || "").toLowerCase().includes(q) ||
@@ -92,7 +106,9 @@ const SolicitudInmueble = () => {
     return coincideEstado && coincideBusqueda;
   });
 
+  // =====================================================
   // 🔹 Render
+  // =====================================================
   if (loadingSolicitudes)
     return <p className="text-center text-gray-600">Cargando inmuebles...</p>;
   if (errorSolicitudes)
@@ -111,7 +127,7 @@ const SolicitudInmueble = () => {
       {/* 🔹 Filtros y búsqueda */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex flex-wrap gap-3">
-          {["todas", "pendiente", "aprobado", "rechazado"].map((estado) => (
+          {["todos", "pendiente", "aprobado", "rechazado"].map((estado) => (
             <button
               key={estado}
               onClick={() => setFiltro(estado)}
@@ -121,8 +137,8 @@ const SolicitudInmueble = () => {
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
-              {estado === "todas"
-                ? "Todas"
+              {estado === "todos"
+                ? "Todos"
                 : estado.charAt(0).toUpperCase() + estado.slice(1)}
             </button>
           ))}
@@ -156,18 +172,14 @@ const SolicitudInmueble = () => {
                 </h2>
                 <span
                   className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                    (s.estado === "aprobado" || s.estado === 1)
+                    s.estado === "aprobado"
                       ? "bg-green-100 text-green-700"
-                      : (s.estado === "rechazado" || s.estado === 2)
+                      : s.estado === "rechazado"
                       ? "bg-red-100 text-red-700"
                       : "bg-yellow-100 text-yellow-700"
                   }`}
                 >
-                  {s.estado === 1
-                    ? "aprobado"
-                    : s.estado === 2
-                    ? "rechazado"
-                    : (s.estado || "pendiente")}
+                  {s.estado || "pendiente"}
                 </span>
               </div>
 
@@ -187,17 +199,14 @@ const SolicitudInmueble = () => {
               <p className="text-sm text-gray-600">
                 <strong>Precio:</strong> {s.precio} Bs
               </p>
-              <p className="text-sm text-gray-600 mt-1">
-                <strong>Agente:</strong> {s.agente_nombre || "—"}
-              </p>
 
               {/* 🔹 Mostrar fotos (si existen) */}
               {s.fotos && s.fotos.length > 0 && (
                 <div className="mt-3">
                   <div className="grid grid-cols-2 gap-2">
-                    {s.fotos.slice(0, 4).map((foto) => (
+                    {s.fotos.slice(0, 4).map((foto, index) => (
                       <img
-                        key={foto.id}
+                        key={index}
                         src={foto.url}
                         alt={foto.descripcion || "Foto de inmueble"}
                         className="w-full h-32 object-cover rounded-lg border"
@@ -211,11 +220,9 @@ const SolicitudInmueble = () => {
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => handleCambiarEstado(s.id, "aprobado")}
-                  disabled={
-                    s.estado === "aprobado" || s.estado === 1 || loadingCambio
-                  }
+                  disabled={s.estado === "aprobado" || loadingCambio}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all ${
-                    (s.estado === "aprobado" || s.estado === 1)
+                    s.estado === "aprobado"
                       ? "bg-green-800 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700"
                   }`}
@@ -224,18 +231,9 @@ const SolicitudInmueble = () => {
                 </button>
                 <button
                   onClick={() => handleCambiarEstado(s.id, "rechazado")}
-                  disabled={
-                    s.estado === "rechazado" ||
-                    s.estado === 2 ||
-                    s.estado === "aprobado" ||
-                    s.estado === 1 ||
-                    loadingCambio
-                  }
+                  disabled={s.estado === "rechazado" || loadingCambio}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all ${
-                    (s.estado === "rechazado" ||
-                      s.estado === 2 ||
-                      s.estado === "aprobado" ||
-                      s.estado === 1)
+                    s.estado === "rechazado"
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700"
                   }`}
@@ -264,4 +262,3 @@ const SolicitudInmueble = () => {
 };
 
 export default SolicitudInmueble;
-

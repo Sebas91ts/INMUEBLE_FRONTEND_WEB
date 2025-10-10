@@ -1,3 +1,4 @@
+// src/pages/Inmuebles/components/InmuebleCard.jsx
 export default function InmuebleCard({ data, onClick }) {
   const fotos = Array.isArray(data?.fotos) ? data.fotos : [];
   const hero = fotos.length ? fotos[0].url : null;

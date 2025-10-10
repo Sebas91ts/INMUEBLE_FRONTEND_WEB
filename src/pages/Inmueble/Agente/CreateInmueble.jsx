@@ -1,19 +1,27 @@
-// src/pages/Inmuebles/CreateInmueble.jsx
 import { useEffect, useMemo, useState } from "react";
-import { listarTiposInmueble, crearInmueble } from "../../api/inmueble"; // <- tu path
-import { uploadImageToCloudinary } from "../../api/uploader";
-import { useAuth } from "../../hooks/useAuth";
-import { getAgentes, getUsuarios } from "../../api/usuarios/usuarios"; // <- tus helpers
+import { listarTiposInmueble, crearInmueble } from "../../../api/inmueble";
+import { uploadImageToCloudinary } from "../../../api/uploader";
+import { getUsuarios } from "../../../api/usuarios/usuarios";
 
-export default function CreateInmueble() {
-  const { user } = useAuth();
-  const isAdmin = String(user?.grupo_nombre || "").toLowerCase() === "administrador";
+// 💡 Componente de alertas reutilizable
+function AlertMessage({ type = "info", message }) {
+  const styles = {
+    success: "border-green-400 bg-green-100 text-green-800",
+    error: "border-red-400 bg-red-100 text-red-800",
+    warning: "border-amber-400 bg-amber-100 text-amber-800",
+    info: "border-blue-400 bg-blue-100 text-blue-800",
+  };
+  return (
+    <div className={`p-3 rounded border ${styles[type]} text-sm`}>
+      {message}
+    </div>
+  );
+}
 
-  // formulario (todo string para inputs; parseo al enviar)
+export default function CreateInmuebleAgente() {
   const [form, setForm] = useState({
-    agente: "",          // visible/requerido solo si admin
-    cliente: "",         // opcional
-    tipo_inmueble_id: "1",
+    cliente: "",
+    tipo_inmueble_id: "",
     titulo: "",
     descripcion: "",
     direccion: "",
@@ -21,7 +29,7 @@ export default function CreateInmueble() {
     zona: "",
     superficie: "0",
     dormitorios: "0",
-    banos: "0",          // se mapeará a ["baños"]
+    banos: "0",
     precio: "0",
     tipo_operacion: "venta",
     latitud: "-16.5",
@@ -29,68 +37,73 @@ export default function CreateInmueble() {
   });
 
   const [tipos, setTipos] = useState([]);
-  const [agentes, setAgentes] = useState([]);   // [{id,label}]
-  const [clientes, setClientes] = useState([]); // [{id,label}]
-  const [err, setErr] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState(null);
-  const [ok, setOk] = useState(null);
+  const [clientes, setClientes] = useState([]);
   const [saving, setSaving] = useState(false);
-
-  // subida de fotos (opcional)
-  const [items, setItems] = useState([]); // [{name,previewUrl,status,progress,urlFinal,_file}]
   const [subiendo, setSubiendo] = useState(false);
+  const [items, setItems] = useState([]);
+  const [okMsg, setOkMsg] = useState("");
+  const [errMsg, setErrMsg] = useState("");
+  const [fieldErrors, setFieldErrors] = useState(null);
 
+  // ==================================================
+  // 🔹 Cargar tipos de inmueble y clientes
+  // ==================================================
   useEffect(() => {
-    // Tipos de inmueble
-    listarTiposInmueble()
-      .then((arr) => {
-        const list = Array.isArray(arr) ? arr : (arr?.values?.tipo_inmueble || []);
-        setTipos(list);
-        if (list.length && !form.tipo_inmueble_id) {
-          setForm((s) => ({ ...s, tipo_inmueble_id: String(list[0].id) }));
-        }
-      })
-      .catch(() => setTipos([]));
-
-    // Cargar agentes y usuarios (para filtrar clientes)
-    (async () => {
+    const fetchData = async () => {
       try {
-        const [agtsRes, usersRes] = await Promise.all([getAgentes(), getUsuarios()]);
-        const arrAgts = agtsRes?.data?.values || agtsRes?.data || [];
-        const arrUsers = usersRes?.data?.values?.usuarios || usersRes?.data?.values || usersRes?.data || [];
+        const tiposRes = await listarTiposInmueble();
+        const arrTipos =
+          tiposRes?.data?.values?.tipo_inmueble ||
+          tiposRes?.values?.tipo_inmueble ||
+          tiposRes?.data ||
+          tiposRes;
+        setTipos(Array.isArray(arrTipos) ? arrTipos : []);
 
-        const agts = (Array.isArray(arrAgts) ? arrAgts : []).map((a) => ({
-          id: a.id,
-          label: a.nombre_completo || a.username || `Agente #${a.id}`,
-        }));
-
-        const clients = (Array.isArray(arrUsers) ? arrUsers : [])
-          .filter((u) => String(u.grupo_nombre || u.grupo?.nombre || "").toLowerCase() === "cliente")
-          .map((c) => ({
-            id: c.id,
-            label: c.nombre_completo || c.username || `Cliente #${c.id}`,
-          }));
-
-        setAgentes(agts);
-        setClientes(clients);
-      } catch {
-        setAgentes([]);
+        const usersRes = await getUsuarios();
+        const arrUsers =
+          usersRes?.data?.values?.usuarios ||
+          usersRes?.data?.values ||
+          usersRes?.data ||
+          usersRes;
+        const onlyClients = (Array.isArray(arrUsers) ? arrUsers : []).filter((u) =>
+          String(u.grupo_nombre || u.grupo?.nombre || "")
+            .toLowerCase()
+            .includes("client")
+        );
+        setClientes(onlyClients);
+      } catch (error) {
+        console.error("❌ Error cargando datos:", error);
+        setErrMsg(
+          "Error al cargar los datos. Verifica tus permisos o conexión."
+        );
+        setTipos([]);
         setClientes([]);
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+    fetchData();
   }, []);
 
+  // ==================================================
+  // 🔹 Manejo de formulario
+  // ==================================================
   const onChange = (e) => {
     const { name, value } = e.target;
-    setForm((s) => ({ ...s, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // fotos (opcional)
+  const stopWheel = (e) => e.currentTarget.blur();
+
+  // ==================================================
+  // 🔹 Manejo de imágenes
+  // ==================================================
+  const fotosUrls = useMemo(
+    () => items.filter((x) => x.status === "ok" && x.urlFinal).map((x) => x.urlFinal),
+    [items]
+  );
+
   const onPickFiles = async (e) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-
     const nuevos = files.map((f) => ({
       name: f.name,
       previewUrl: URL.createObjectURL(f),
@@ -100,8 +113,8 @@ export default function CreateInmueble() {
       _file: f,
     }));
     setItems((prev) => [...prev, ...nuevos]);
-
     setSubiendo(true);
+
     await Promise.all(
       nuevos.map(async (it, idxLocal) => {
         const idx = items.length + idxLocal;
@@ -133,29 +146,26 @@ export default function CreateInmueble() {
 
   const removeFoto = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
-  const fotosUrls = useMemo(
-    () => items.filter((x) => x.status === "ok" && x.urlFinal).map((x) => x.urlFinal),
-    [items]
-  );
-
-  const disabledSubmit = saving || subiendo; // fotos no obligatorias
-
+  // ==================================================
+  // 🔹 Enviar formulario
+  // ==================================================
   const submit = async (e) => {
     e.preventDefault();
-    setErr(null);
-    setOk(null);
+    setErrMsg("");
+    setOkMsg("");
     setFieldErrors(null);
 
-    if (!form.titulo.trim()) return setErr("El título es obligatorio.");
-    if (isAdmin && !form.agente) return setErr("Debes seleccionar un agente.");
+    if (!form.titulo.trim()) {
+      setErrMsg("El título es obligatorio.");
+      return;
+    }
 
     setSaving(true);
     try {
-      const toInt = (s) => (s === "" || s === null || s === undefined ? null : parseInt(s, 10));
-      const toFloat = (s) => (s === "" || s === null || s === undefined ? null : parseFloat(s));
+      const toInt = (s) => (s ? parseInt(s, 10) : null);
+      const toFloat = (s) => (s ? parseFloat(s) : null);
 
       const payload = {
-        ...(isAdmin && form.agente ? { agente: toInt(form.agente) } : {}),
         ...(form.cliente ? { cliente: toInt(form.cliente) } : {}),
         tipo_inmueble_id: toInt(form.tipo_inmueble_id),
         titulo: form.titulo.trim(),
@@ -165,7 +175,7 @@ export default function CreateInmueble() {
         zona: form.zona.trim(),
         superficie: toFloat(form.superficie),
         dormitorios: toInt(form.dormitorios),
-        ["baños"]: toInt(form.banos), // backend espera 'baños'
+        ["baños"]: toInt(form.banos),
         precio: toFloat(form.precio),
         tipo_operacion: form.tipo_operacion,
         latitud: toFloat(form.latitud),
@@ -174,9 +184,10 @@ export default function CreateInmueble() {
       };
 
       const res = await crearInmueble(payload);
-      setOk(res?.message ?? "Inmueble creado.");
-
-      // Limpieza suave
+      const msg =
+        res?.message ||
+        "INMUEBLE REGISTRADO CORRECTAMENTE ESPERANDO APROBACIÓN DEL ADMINISTRADOR.";
+      setOkMsg(msg);
       setItems([]);
       setForm((s) => ({
         ...s,
@@ -190,52 +201,58 @@ export default function CreateInmueble() {
         precio: "0",
       }));
     } catch (e2) {
+      console.error("❌ Error creando inmueble:", e2);
+
+      const status = e2?.response?.status;
       const apiMsg = e2?.response?.data?.message;
       const apiFieldErrors = e2?.response?.data?.values;
-      setErr(apiMsg ?? e2?.message ?? "Error al crear inmueble");
-      if (apiFieldErrors && typeof apiFieldErrors === "object") setFieldErrors(apiFieldErrors);
+
+      if (status === 401)
+        setErrMsg("No estás autenticado. Inicia sesión nuevamente.");
+      else if (status === 403)
+        setErrMsg("No tienes permisos para registrar un inmueble.");
+      else if (status === 400)
+        setErrMsg(apiMsg || "Hay errores en el formulario.");
+      else if (status >= 500)
+        setErrMsg("Error del servidor. Intenta nuevamente más tarde.");
+      else setErrMsg(apiMsg || e2.message || "Error desconocido.");
+
+      if (apiFieldErrors && typeof apiFieldErrors === "object")
+        setFieldErrors(apiFieldErrors);
     } finally {
       setSaving(false);
     }
   };
 
-  const stopWheel = (e) => e.currentTarget.blur();
+  const disabledSubmit = saving || subiendo;
 
+  // ==================================================
+  // 🔹 Render
+  // ==================================================
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-5">
-      <h1 className="text-2xl font-bold">Crear inmueble</h1>
+      <h1 className="text-2xl font-bold">Crear inmueble (Agente)</h1>
 
-      {err && <div className="p-3 rounded border border-red-300 bg-red-100">{err}</div>}
+      {okMsg && <AlertMessage type="success" message={okMsg} />}
+      {errMsg && <AlertMessage type="error" message={errMsg} />}
+
       {fieldErrors && (
         <div className="p-3 rounded border border-amber-300 bg-amber-50 text-sm">
-          <pre className="whitespace-pre-wrap break-words">{JSON.stringify(fieldErrors, null, 2)}</pre>
+          <strong>Revisa los siguientes campos:</strong>
+          <ul className="list-disc pl-5 mt-1">
+            {Object.entries(fieldErrors).map(([field, errors]) => (
+              <li key={field}>
+                <span className="font-medium capitalize">{field}:</span>{" "}
+                {Array.isArray(errors) ? errors.join(", ") : String(errors)}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-      {ok && <div className="p-3 rounded border border-green-300 bg-green-100">{ok}</div>}
 
       <form onSubmit={submit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Agente: solo si admin */}
-          {isAdmin && (
-            <label className="flex flex-col">
-              <span className="text-sm">Agente</span>
-              <select
-                name="agente"
-                value={form.agente}
-                onChange={onChange}
-                className="border p-2 rounded"
-              >
-                <option value="">— Selecciona agente —</option>
-                {agentes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {/* Cliente: opcional */}
+          {/* Cliente opcional */}
           <label className="flex flex-col">
             <span className="text-sm">Cliente (opcional)</span>
             <select
@@ -247,12 +264,13 @@ export default function CreateInmueble() {
               <option value="">— Sin cliente —</option>
               {clientes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label}
+                  {c.nombre_completo || c.username || `Cliente #${c.id}`}
                 </option>
               ))}
             </select>
           </label>
 
+          {/* Tipo de inmueble */}
           <label className="flex flex-col">
             <span className="text-sm">Tipo de inmueble</span>
             <select
@@ -261,6 +279,7 @@ export default function CreateInmueble() {
               onChange={onChange}
               className="border p-2 rounded"
             >
+              <option value="">Seleccione un tipo</option>
               {tipos.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nombre}
@@ -269,6 +288,7 @@ export default function CreateInmueble() {
             </select>
           </label>
 
+          {/* Precio */}
           <label className="flex flex-col">
             <span className="text-sm">Precio</span>
             <input
@@ -283,6 +303,7 @@ export default function CreateInmueble() {
             />
           </label>
 
+          {/* Título */}
           <label className="flex flex-col md:col-span-2">
             <span className="text-sm">Título</span>
             <input
@@ -294,6 +315,7 @@ export default function CreateInmueble() {
             />
           </label>
 
+          {/* Descripción */}
           <label className="flex flex-col md:col-span-2">
             <span className="text-sm">Descripción</span>
             <textarea
@@ -307,17 +329,32 @@ export default function CreateInmueble() {
 
           <label className="flex flex-col">
             <span className="text-sm">Dirección</span>
-            <input name="direccion" value={form.direccion} onChange={onChange} className="border p-2 rounded" />
+            <input
+              name="direccion"
+              value={form.direccion}
+              onChange={onChange}
+              className="border p-2 rounded"
+            />
           </label>
 
           <label className="flex flex-col">
             <span className="text-sm">Ciudad</span>
-            <input name="ciudad" value={form.ciudad} onChange={onChange} className="border p-2 rounded" />
+            <input
+              name="ciudad"
+              value={form.ciudad}
+              onChange={onChange}
+              className="border p-2 rounded"
+            />
           </label>
 
           <label className="flex flex-col">
             <span className="text-sm">Zona</span>
-            <input name="zona" value={form.zona} onChange={onChange} className="border p-2 rounded" />
+            <input
+              name="zona"
+              value={form.zona}
+              onChange={onChange}
+              className="border p-2 rounded"
+            />
           </label>
 
           <label className="flex flex-col">
@@ -405,7 +442,9 @@ export default function CreateInmueble() {
 
         {/* Fotos (opcional) */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Fotos del inmueble (opcional)</label>
+          <label className="text-sm font-medium">
+            Fotos del inmueble (opcional)
+          </label>
           <input type="file" accept="image/*" multiple onChange={onPickFiles} />
 
           {items.length > 0 && (
@@ -416,20 +455,43 @@ export default function CreateInmueble() {
                     src={it.previewUrl}
                     alt={it.name}
                     className="w-full h-28 object-cover rounded"
-                    onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/300x200?text=No+preview")}
+                    onError={(e) =>
+                      (e.currentTarget.src =
+                        "https://via.placeholder.com/300x200?text=No+preview")
+                    }
                   />
                   <div className="text-xs mt-1 truncate">{it.name}</div>
                   <div className="h-2 bg-gray-200 rounded mt-1 overflow-hidden">
                     <div
-                      className={`h-2 ${it.status === "error" ? "bg-red-500" : "bg-blue-600"}`}
-                      style={{ width: `${it.progress || (it.status === "ok" ? 100 : 0)}%` }}
+                      className={`h-2 ${
+                        it.status === "error" ? "bg-red-500" : "bg-blue-600"
+                      }`}
+                      style={{
+                        width: `${it.progress || (it.status === "ok" ? 100 : 0)}%`,
+                      }}
                     />
                   </div>
                   <div className="flex justify-between items-center mt-1 text-xs">
-                    <span className={it.status === "ok" ? "text-green-700" : it.status === "error" ? "text-red-700" : "text-gray-600"}>
-                      {it.status === "subiendo" ? "Subiendo…" : it.status === "ok" ? "OK" : "Error"}
+                    <span
+                      className={
+                        it.status === "ok"
+                          ? "text-green-700"
+                          : it.status === "error"
+                          ? "text-red-700"
+                          : "text-gray-600"
+                      }
+                    >
+                      {it.status === "subiendo"
+                        ? "Subiendo…"
+                        : it.status === "ok"
+                        ? "OK"
+                        : "Error"}
                     </span>
-                    <button type="button" onClick={() => removeFoto(i)} className="text-red-600">
+                    <button
+                      type="button"
+                      onClick={() => removeFoto(i)}
+                      className="text-red-600"
+                    >
                       Quitar
                     </button>
                   </div>
@@ -437,7 +499,6 @@ export default function CreateInmueble() {
               ))}
             </div>
           )}
-          <p className="text-xs text-gray-500">Formato: JPG/PNG/WebP. Tamaño máx. recomendado: 5MB.</p>
         </div>
 
         <button
@@ -445,10 +506,18 @@ export default function CreateInmueble() {
           className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
           title={subiendo ? "Espera a que terminen de subir las fotos" : ""}
         >
-          {saving ? "Guardando..." : subiendo ? "Subiendo fotos..." : "Crear inmueble"}
+          {saving
+            ? "Guardando..."
+            : subiendo
+            ? "Subiendo fotos..."
+            : "Crear inmueble"}
         </button>
       </form>
     </div>
   );
 }
+
+
+
+
 

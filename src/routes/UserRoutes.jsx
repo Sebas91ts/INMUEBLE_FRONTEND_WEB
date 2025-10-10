@@ -1,3 +1,4 @@
+// src/routes/UserRoutes.jsx
 import { Route, Routes, Navigate, Outlet } from 'react-router-dom'
 import HomeUser from '../pages/HomeUser/HomeUser'
 import Home from '../pages/HomeUser/ContentHomeUser'
@@ -8,8 +9,8 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
-import EnAprobado from "../pages/Inmueble/Agente/EnAprobado";
-
+import EnAprobado from "../pages/Inmueble/Agente/MisInmuebles";
+import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble"; 
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -43,13 +44,15 @@ export default function UserRoutes() {
           </Route>
           {/* 🧩 NUEVA SECCIÓN PARA EL AGENTE */}
         <Route
-          path="mis-inmuebles/aprobados"
-          element={
-            <PrivilegedRoute componente="Inmueble">
-              <EnAprobado />
-            </PrivilegedRoute>
-          }
-        />
+  path="mis-inmuebles"
+  element={<PrivilegedRoute componente="Inmueble"><Outlet /></PrivilegedRoute>}
+>
+  <Route path="aprobados" element={<EnAprobado />} />
+  <Route path="crear" element={<CreateInmuebleAgente />} />
+</Route>
+
+
+
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />
         </Route>

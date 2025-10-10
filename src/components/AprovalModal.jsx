@@ -1,3 +1,4 @@
+// src/components/ApprovalModal.jsx
 import { CheckCircle, X } from 'lucide-react'
 
 // Modal de Aprobación

@@ -43,3 +43,9 @@ export const publicarInmueble = async (id) => {
   const { data } = await instancia.post(`inmueble/publicar_inmueble/${id}`);
   return data;
 };
+
+export const getMisInmuebles = (estado = 'todos') =>
+  instancia.get(`inmueble/mis-inmuebles?estado=${encodeURIComponent(estado)}`);
+
+export const getResumenMisInmuebles = () =>
+  instancia.get('inmueble/mis-inmuebles/resumen');

@@ -14,12 +14,17 @@ import { getAgentes } from '../../api/usuarios/usuarios'
 import { useAuth } from '../../hooks/useAuth'
 import { createChat } from '../../api/chat/chat'
 import LoginRequired from '../../components/LoginRequired'
+import { useNavigate } from 'react-router-dom'
+import { useContext } from 'react'
+import { ChatContext } from '../../contexts/ChatContext'
 
 export default function AgentesInmobiliaria() {
   const [searchTerm, setSearchTerm] = useState('')
   const { data, error, loading, execute } = useApi(getAgentes)
   const { execute: executeChat } = useApi(createChat)
+  const { agregarChat } = useContext(ChatContext)
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     execute()
@@ -29,10 +34,26 @@ export default function AgentesInmobiliaria() {
 
   const handleChat = async (agenteId) => {
     const result = await executeChat({
-      agente: agenteId,
-      cliente: user.id
+      agente_id: agenteId,
+      cliente_id: user.id
     })
-    console.log(result)
+
+    const chat = result.data?.values
+    if (!chat) return
+
+    // 🔹 Agregar chat al contexto para que aparezca en ChatList
+    agregarChat({
+      ...chat,
+      mensajes: chat.mensajes || [],
+      lastMessage:
+        chat.mensajes?.length > 0
+          ? chat.mensajes[chat.mensajes.length - 1].mensaje
+          : null,
+      unreadCount: chat.mensajes?.filter((m) => !m.leido).length || 0
+    })
+
+    // 🔹 Navegar y pasar el ID del chat para abrirlo automáticamente
+    navigate(`/home/chat?chatId=${chat.id}`)
   }
 
   const agentesFiltrados = agentes.filter(

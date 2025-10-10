@@ -128,6 +128,15 @@ export function ChatProvider({ children }) {
     }
   }
 
+  // Agregar un chat nuevo al contexto
+  const agregarChat = (chat) => {
+    setChats((prev) => {
+      // Evitar duplicados
+      if (prev.some((c) => c.id === chat.id)) return prev
+      return [...prev, chat]
+    })
+  }
+
   return (
     <ChatContext.Provider
       value={{
@@ -135,7 +144,8 @@ export function ChatProvider({ children }) {
         enviarMensaje,
         selectedChatId,
         setSelectedChatId,
-        marcarMensajesLeidos
+        marcarMensajesLeidos,
+        agregarChat
       }}
     >
       {children}

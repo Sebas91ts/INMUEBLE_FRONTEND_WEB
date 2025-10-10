@@ -8,7 +8,10 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider')
   }
 
-  return context
+  return {
+    ...context,
+    token: context.accessToken // ✅ aquí exponemos el token
+  }
 }
 
 // HOC para proteger rutas

@@ -1,14 +1,40 @@
-import { Link } from 'react-router-dom'
-import { useState } from 'react'
-import { Menu, X, Home, Building2, Phone, Info, LogOut } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useState, useContext, useMemo } from 'react'
+import {
+  Menu,
+  X,
+  Home,
+  Building2,
+  Phone,
+  Info,
+  LogOut,
+  Users,
+  Bell
+} from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
+import { ChatContext } from '../../../contexts/ChatContext'
 import UserAvatar from '../../Dashboard/components/UserAvatar'
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const { privilegios, loading } = usePrivilegios()
+  const { chats } = useContext(ChatContext)
+  const navigate = useNavigate()
+
+  // 🔢 Calcular cantidad total de mensajes no leídos del otro usuario
+  const totalUnread = useMemo(() => {
+    if (!user || !chats) return 0
+    return chats.reduce((acc, chat) => {
+      const otherUserId =
+        chat.cliente.id === user.id ? chat.agente.id : chat.cliente.id
+      const unreadFromOther = chat.mensajes.filter(
+        (msg) => !msg.leido && msg.usuario_id === otherUserId
+      ).length
+      return acc + unreadFromOther
+    }, 0)
+  }, [chats, user])
 
   const navLinks = [
     {
@@ -45,6 +71,20 @@ export default function Navbar() {
       icon: Home,
       componente: 'Dashboard',
       protegido: true
+    },
+    {
+      to: '/home/agentes-contacto',
+      label: 'Agentes',
+      icon: Users,
+      componente: 'Agente',
+      protegido: false
+    },
+    {
+      to: '/home/chat',
+      label: 'Mensajes',
+      icon: Phone,
+      componente: 'chat',
+      protegido: true
     }
   ]
 
@@ -53,13 +93,10 @@ export default function Navbar() {
 
   // Filtrar links según privilegios
   const linksFiltrados = navLinks.filter((link) => {
-    // Links públicos → siempre mostrar
     if (!link.protegido) return true
-
     if (!user) return false
-    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true // Admin ve todo
+    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
 
-    // Revisar privilegios solo para links protegidos
     return privilegios.some(
       (p) =>
         p.componente.toLowerCase() === link.componente.toLowerCase() &&
@@ -90,15 +127,24 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className='hidden items-center gap-8 md:flex'>
-            {linksFiltrados.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className='text-sm font-medium text-stone-600 transition-colors hover:text-stone-900'
-              >
-                {link.label}
-              </Link>
-            ))}
+            {linksFiltrados.map((link) => {
+              const isChat = link.to === '/home/chat'
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className='relative text-sm font-medium text-stone-600 transition-colors hover:text-stone-900 flex items-center gap-1'
+                >
+                  {link.label}
+                  {/* 🔴 Badge en desktop para chat */}
+                  {isChat && totalUnread > 0 && (
+                    <span className='ml-1 inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold leading-none text-white'>
+                      {totalUnread}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
           </div>
 
           {/* Desktop Login / Logout */}
@@ -123,18 +169,33 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className='md:hidden text-stone-900'
-            aria-label='Toggle menu'
-          >
-            {isMenuOpen ? (
-              <X className='h-6 w-6' />
-            ) : (
-              <Menu className='h-6 w-6' />
-            )}
-          </button>
+          {/* 🔔 Campanita y botón del menú (solo en móvil) */}
+          <div className='flex items-center gap-3 md:hidden'>
+            <button
+              onClick={() => navigate('/home/chat')}
+              className='relative text-stone-900'
+              aria-label='Ir a mensajes'
+            >
+              <Bell className='h-6 w-6' />
+              {totalUnread > 0 && (
+                <span className='absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full px-1.5 py-0.5'>
+                  {totalUnread}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className='text-stone-900'
+              aria-label='Toggle menu'
+            >
+              {isMenuOpen ? (
+                <X className='h-6 w-6' />
+              ) : (
+                <Menu className='h-6 w-6' />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -143,15 +204,24 @@ export default function Navbar() {
             <div className='flex flex-col gap-4'>
               {linksFiltrados.map((link) => {
                 const Icon = link.icon
+                const isChat = link.to === '/home/chat'
+
                 return (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setIsMenuOpen(false)}
-                    className='flex items-center gap-3 text-sm font-medium text-stone-600 transition-colors hover:text-stone-900'
+                    className='relative flex items-center gap-3 text-sm font-medium text-stone-600 transition-colors hover:text-stone-900'
                   >
                     <Icon className='h-4 w-4' />
                     {link.label}
+
+                    {/* 🔴 Badge en menú móvil */}
+                    {isChat && totalUnread > 0 && (
+                      <span className='absolute right-0 top-0 bg-red-600 text-white text-xs font-bold rounded-full px-1.5 py-0.5'>
+                        {totalUnread}
+                      </span>
+                    )}
                   </Link>
                 )
               })}

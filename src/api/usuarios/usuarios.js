@@ -30,3 +30,6 @@ export const eliminarUsuario = async (id) => {
 export const activarUsuario = async (id) => {
   return instancia.patch(`usuario/activar_usuario/${id}`);
 }
+export const getAgentes = async () => {
+  return instancia.get('usuario/listar-agentes');  
+}

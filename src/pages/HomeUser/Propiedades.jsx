@@ -1,3 +1,4 @@
+// src/pages/HomeUser/Propiedades.jsx
 import { useEffect, useState } from "react";
 import { getInmuebles } from "../../api/inmueble/index";
 

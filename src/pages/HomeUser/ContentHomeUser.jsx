@@ -1,3 +1,4 @@
+// src/pages/HomeUser/ContentHomeUser.jsx
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Bed, Bath, Square } from "lucide-react";
 

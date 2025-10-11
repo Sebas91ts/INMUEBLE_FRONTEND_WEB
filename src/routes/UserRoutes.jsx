@@ -1,3 +1,4 @@
+// src/routes/UserRoutes.jsx
 import { Route, Routes, Navigate, Outlet } from 'react-router-dom'
 import HomeUser from '../pages/HomeUser/HomeUser'
 import Home from '../pages/HomeUser/ContentHomeUser'
@@ -8,6 +9,10 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
+import EnAprobado from '../pages/Inmueble/Agente/MisInmuebles'
+import CreateInmuebleAgente from '../pages/Inmueble/Agente/CreateInmueble'
+import Desempeno from '../pages/Desempeno/Desempeno'
+import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
 import Citas from '../pages/Citas/Citas';
 
 export default function UserRoutes() {
@@ -28,6 +33,28 @@ export default function UserRoutes() {
 
           {/* Páginas protegidas por privilegios */}
           <Route
+            path="desempeno"
+            element={
+              <PrivilegedRoute componente="Inmueble">
+                <Desempeno />
+              </PrivilegedRoute>
+            }
+          />
+          
+          <Route
+            path="inmuebles"
+            element={
+              <PrivilegedRoute componente="Inmueble">
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          >
+            <Route path="crear" element={<CreateInmueble />} />
+          </Route>
+          
+
+          {/* Páginas protegidas por privilegios */}
+          <Route
             path='propiedades'
             element={
               <PrivilegedRoute componente='Inmueble'>
@@ -35,11 +62,31 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           >
+            <Route
+            path='propiedades'
+            element={
+              <PrivilegedRoute componente='Inmueble'>
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          ></Route>
             {/* ✅ Listado de propiedades */}
             <Route index element={<Propiedades />} />
 
             {/* ✅ Detalle de un inmueble */}
             <Route path=':id' element={<PropiedadDetail />} />
+          </Route>
+          {/* 🧩 NUEVA SECCIÓN PARA EL AGENTE */}
+          <Route
+            path='mis-inmuebles'
+            element={
+              <PrivilegedRoute componente='Inmueble'>
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          >
+            <Route path='aprobados' element={<EnAprobado />} />
+            <Route path='crear' element={<CreateInmuebleAgente />} />
           </Route>
           <Route
             path='citas'

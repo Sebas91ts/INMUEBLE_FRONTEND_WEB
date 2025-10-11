@@ -1,3 +1,4 @@
+// src/pages/Permisos/Privilegios.jsx
 import { useState } from 'react'
 import { usePrivilegios } from '../../hooks/usePrivilegio'
 import { useGrupos } from '../../hooks/useGrupos'

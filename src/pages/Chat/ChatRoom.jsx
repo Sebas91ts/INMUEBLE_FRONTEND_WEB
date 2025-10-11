@@ -2,15 +2,13 @@ import { useState, useEffect, useRef, useContext } from 'react'
 import LoginRequired from '../../components/LoginRequired'
 import { ChatContext } from '../../contexts/ChatContext'
 
-export default function ChatRoom({ chat, user, enviarMensaje }) {
-  const { marcarMensajesLeidos } = useContext(ChatContext)
+export default function ChatRoom({ chat, user }) { // ⬅️ Quitar enviarMensaje de props
+  const { enviarMensaje, marcarMensajesLeidos } = useContext(ChatContext) // ⬅️ Usar del contexto
   const [input, setInput] = useState('')
   const messagesEndRef = useRef(null)
 
-  // Siempre definir chatMessages aunque chat sea null
   const chatMessages = chat?.mensajes ?? []
-  const otherUser =
-    chat?.cliente?.id === user?.id ? chat?.agente : chat?.cliente
+  const otherUser = chat?.cliente?.id === user?.id ? chat?.agente : chat?.cliente
 
   // Scroll al final y marcar mensajes leídos
   useEffect(() => {
@@ -18,7 +16,7 @@ export default function ChatRoom({ chat, user, enviarMensaje }) {
 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
 
-    // Filtramos solo los mensajes que no están leídos y no son míos
+    // Marcar mensajes no leídos como leídos
     const mensajesNoLeidos = chatMessages
       .filter((msg) => !msg.leido && msg.usuario_id !== user.id)
       .map((msg) => msg.id)
@@ -30,7 +28,7 @@ export default function ChatRoom({ chat, user, enviarMensaje }) {
 
   const handleSend = () => {
     if (!input.trim() || !chat) return
-    enviarMensaje(chat.id, input)
+    enviarMensaje(chat.id, input) // ⬅️ Usar del contexto
     setInput('')
   }
 
@@ -47,9 +45,9 @@ export default function ChatRoom({ chat, user, enviarMensaje }) {
       {/* Header */}
       <div className='p-4 border-b border-stone-200 flex items-center gap-3 bg-stone-100'>
         <div className='w-10 h-10 rounded-full bg-stone-900 text-white flex items-center justify-center font-semibold'>
-          {otherUser?.nombre[0]?.toUpperCase()}
+          {otherUser?.nombre?.[0]?.toUpperCase() || 'U'}
         </div>
-        <p className='font-semibold text-stone-900'>{otherUser?.nombre}</p>
+        <p className='font-semibold text-stone-900'>{otherUser?.nombre || 'Usuario'}</p>
       </div>
 
       {/* Mensajes */}
@@ -75,7 +73,6 @@ export default function ChatRoom({ chat, user, enviarMensaje }) {
             </div>
           )
         })}
-
         <div ref={messagesEndRef}></div>
       </div>
 

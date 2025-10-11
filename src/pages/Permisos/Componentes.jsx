@@ -1,3 +1,4 @@
+// src/pages/Permisos/Componentes.jsx
 import { useState } from 'react'
 import { Pencil, RefreshCw } from 'lucide-react'
 import { useComponentes } from '../../hooks/useComponentes'

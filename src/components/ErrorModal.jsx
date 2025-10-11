@@ -1,3 +1,4 @@
+// src/components/ErrorModal.jsx
 import { XCircle, X } from 'lucide-react'
 
 const ErrorModal = ({ isOpen, onClose, message }) => {

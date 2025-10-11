@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import AppRoutes from './routes/routes'
 import './index.css'
+import 'leaflet/dist/leaflet.css'
+
+
+
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

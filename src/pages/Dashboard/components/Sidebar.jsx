@@ -50,6 +50,13 @@ const baseMenuItems = [
     ]
   },
   {
+    id: "gestion-propiedad",
+    icon: Building,                 // o cualquier otro de lucide-react
+    label: "Gestionar propiedad",
+    path: "/dashboard/inmuebles/tipos"     
+  },
+  
+  {
     id: "usuarios",
     icon: User,
     label: "Usuarios",

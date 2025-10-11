@@ -2,3 +2,7 @@
 body {
   font-family: 'Poppins', sans-serif;
 }
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow {
+  max-width: none !important;
+}

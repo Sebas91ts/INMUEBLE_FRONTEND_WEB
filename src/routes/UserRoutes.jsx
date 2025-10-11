@@ -11,6 +11,9 @@ import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
 import EnAprobado from '../pages/Inmueble/Agente/MisInmuebles'
 import CreateInmuebleAgente from '../pages/Inmueble/Agente/CreateInmueble'
+import Desempeno from '../pages/Desempeno/Desempeno'
+import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
+import Citas from '../pages/Citas/Citas';
 
 export default function UserRoutes() {
   return (
@@ -30,6 +33,28 @@ export default function UserRoutes() {
 
           {/* Páginas protegidas por privilegios */}
           <Route
+            path="desempeno"
+            element={
+              <PrivilegedRoute componente="Inmueble">
+                <Desempeno />
+              </PrivilegedRoute>
+            }
+          />
+          
+          <Route
+            path="inmuebles"
+            element={
+              <PrivilegedRoute componente="Inmueble">
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          >
+            <Route path="crear" element={<CreateInmueble />} />
+          </Route>
+          
+
+          {/* Páginas protegidas por privilegios */}
+          <Route
             path='propiedades'
             element={
               <PrivilegedRoute componente='Inmueble'>
@@ -37,6 +62,14 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           >
+            <Route
+            path='propiedades'
+            element={
+              <PrivilegedRoute componente='Inmueble'>
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          ></Route>
             {/* ✅ Listado de propiedades */}
             <Route index element={<Propiedades />} />
 
@@ -55,6 +88,15 @@ export default function UserRoutes() {
             <Route path='aprobados' element={<EnAprobado />} />
             <Route path='crear' element={<CreateInmuebleAgente />} />
           </Route>
+          <Route
+            path='citas'
+            element= {
+              <PrivilegedRoute componente='cita'>
+                <Citas />
+              </PrivilegedRoute>
+            }
+             
+          />
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />

@@ -19,6 +19,7 @@ import EnAlquiler from "../pages/Inmuebles/EnAlquiler";
 import EnAnticretico from "../pages/Inmuebles/EnAnticretico";
 import InmuebleDetail from "../pages/Inmuebles/InmuebleDetail";
 import Bitacora from '../pages/Bitacora/Bitacora'
+import TiposInmueble from "../pages/Inmuebles/Tipos";
 export default function AdminRoutes() {
   return (
     <Routes>
@@ -84,8 +85,23 @@ export default function AdminRoutes() {
             </PrivilegedRoute>
           }
         />
-
-        <Route path="inmuebles/crear" element={<CreateInmueble />} />
+        <Route
+          path="inmuebles/tipos"
+          element={
+            <PrivilegedRoute componente="tipoinmueble">
+              <TiposInmueble />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path="inmuebles/crear"
+          element={
+            <PrivilegedRoute componente="inmueble">
+              <CreateInmueble />
+            </PrivilegedRoute>
+          }
+        />
+      
         <Route path='permisos/grupos' element={<Grupos />} />
         <Route path='permisos/privilegios' element={<Privilegios />} />
         <Route path='permisos/componentes' element={<Componentes />} />

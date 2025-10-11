@@ -9,10 +9,8 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
-import EnAprobado from "../pages/Inmueble/Agente/MisInmuebles";
-import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble"; 
-
-import EnAprobado from "../pages/Inmueble/Agente/EnAprobado";
+import EnAprobado from '../pages/Inmueble/Agente/MisInmuebles'
+import CreateInmuebleAgente from '../pages/Inmueble/Agente/CreateInmueble'
 
 export default function UserRoutes() {
   return (
@@ -46,15 +44,17 @@ export default function UserRoutes() {
             <Route path=':id' element={<PropiedadDetail />} />
           </Route>
           {/* 🧩 NUEVA SECCIÓN PARA EL AGENTE */}
-        <Route
-  path="mis-inmuebles"
-  element={<PrivilegedRoute componente="Inmueble"><Outlet /></PrivilegedRoute>}
->
-  <Route path="aprobados" element={<EnAprobado />} />
-  <Route path="crear" element={<CreateInmuebleAgente />} />
-</Route>
-
-
+          <Route
+            path='mis-inmuebles'
+            element={
+              <PrivilegedRoute componente='Inmueble'>
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          >
+            <Route path='aprobados' element={<EnAprobado />} />
+            <Route path='crear' element={<CreateInmuebleAgente />} />
+          </Route>
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />
@@ -62,6 +62,4 @@ export default function UserRoutes() {
       </Routes>
     </ChatProvider>
   )
-        
-  
 }

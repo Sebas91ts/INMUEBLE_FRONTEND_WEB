@@ -106,6 +106,13 @@ export default function Navbar() {
   //   if (!user) return false
   //   if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
 
+  //   // Links públicos → siempre mostrar
+  //   if (!link.protegido) return true
+
+  //   if (!user) return false
+  //   if (user.grupo_nombre?.toLowerCase() === 'administrador') return true // Admin ve todo
+
+  //   // Revisar privilegios solo para links protegidos
   //   return privilegios.some(
   //     (p) =>
   //       p.componente.toLowerCase() === link.componente.toLowerCase() &&

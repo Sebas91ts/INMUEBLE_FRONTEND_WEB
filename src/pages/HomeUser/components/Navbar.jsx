@@ -9,7 +9,7 @@ import {
   Info,
   LogOut,
   Users,
-  Bell
+  Bell, TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
@@ -85,7 +85,23 @@ export default function Navbar() {
       icon: Phone,
       componente: 'chat',
       protegido: true
-    }
+    },
+    {
+      to: '/home/desempeno',          // ← tu ruta (si es top-level)
+      label: 'Desempeño',
+      icon: TrendingUp,
+      componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
+      //protegido: true,
+      //onlyAgente: true           // (opcional) muéstralo solo a agentes
+    },
+    {
+      to: '/home/inmuebles/crear',          // ← tu ruta (si es top-level)
+      label: 'Crear Inmueble',
+      icon: TrendingUp,
+      componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
+      //protegido: true,
+      //onlyAgente: true           // (opcional) muéstralo solo a agentes
+    },
   ]
 
   if (loading)

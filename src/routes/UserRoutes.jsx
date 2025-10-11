@@ -8,6 +8,8 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
+import Desempeno from '../pages/Desempeno/Desempeno'
+import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
 
 export default function UserRoutes() {
   return (
@@ -24,6 +26,9 @@ export default function UserRoutes() {
           <Route path='editar-perfil' element={<EditarPerfil />} />
           <Route path='agentes-contacto' element={<AgentesInmobiliaria />} />
           <Route path='chat' element={<ChatPage />} />
+          <Route path='desempeno' element={<Desempeno/>} />
+          <Route path="inmuebles/crear" element={<CreateInmueble />} />
+          
 
           {/* Páginas protegidas por privilegios */}
           <Route
@@ -34,6 +39,14 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           >
+            <Route
+            path='propiedades'
+            element={
+              <PrivilegedRoute componente='Inmueble'>
+                <Outlet />
+              </PrivilegedRoute>
+            }
+          ></Route>
             {/* ✅ Listado de propiedades */}
             <Route index element={<Propiedades />} />
 

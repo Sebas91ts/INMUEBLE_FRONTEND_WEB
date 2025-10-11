@@ -95,7 +95,12 @@ export default function MisInmuebles() {
     <div className="p-6 relative">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-800">🏠 Mis Inmuebles</h1>
-
+        <button
+     onClick={() => navigate("/home/mis-inmuebles/historial")}
+     className="border px-4 py-2 rounded hover:bg-gray-100"
+   >
+     Historial de publicaciones
+   </button>
         <button
           onClick={goCrear}
           className="inline-flex items-center gap-2 rounded-lg bg-stone-900 px-4 py-2 text-white hover:bg-stone-800"

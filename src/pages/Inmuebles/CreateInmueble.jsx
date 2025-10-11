@@ -291,7 +291,7 @@ export default function CreateInmueble() {
         superficie: toFloat(form.superficie),
         dormitorios: toInt(form.dormitorios),
         ["baños"]: toInt(form.banos), // backend espera 'baños'
-        ["baños"]: toInt(form.banos), // backend espera 'baños'
+              // ["baños"]: toInt(form.banos), // backend espera 'baños'
         precio: toFloat(form.precio),
         tipo_operacion: form.tipo_operacion,
         latitud: toFloat(form.latitud),

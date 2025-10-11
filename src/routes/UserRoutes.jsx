@@ -14,7 +14,8 @@ import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble";
 import Desempeno from '../pages/Desempeno/Desempeno'
 import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
 import Citas from '../pages/Citas/Citas';
-
+import HistorialPublicaciones from "../pages/Inmueble/Agente/HistorialPublicaciones";
+import DetalleHistorial from "../pages/Inmueble/Agente/DetalleHistorial";
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -87,6 +88,8 @@ export default function UserRoutes() {
           >
             <Route path='aprobados' element={<EnAprobado />} />
             <Route path='crear' element={<CreateInmuebleAgente />} />
+            <Route path='historial' element={<HistorialPublicaciones />} />
+            <Route path='detalle/:id' element={<DetalleHistorial />} />
           </Route>
           <Route
             path='citas'

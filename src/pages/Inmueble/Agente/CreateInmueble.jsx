@@ -1,3 +1,4 @@
+// src/pages/Inmueble/Agente/CreateInmueble.jsx
 import { useEffect, useMemo, useState } from "react";
 import { listarTiposInmueble, crearInmueble } from "../../../api/inmueble";
 import { uploadImageToCloudinary } from "../../../api/uploader";

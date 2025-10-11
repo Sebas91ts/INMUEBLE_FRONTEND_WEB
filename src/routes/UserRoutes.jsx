@@ -8,6 +8,7 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
+import Citas from '../pages/Citas/Citas';
 
 export default function UserRoutes() {
   return (
@@ -40,6 +41,15 @@ export default function UserRoutes() {
             {/* ✅ Detalle de un inmueble */}
             <Route path=':id' element={<PropiedadDetail />} />
           </Route>
+          <Route
+            path='citas'
+            element= {
+              <PrivilegedRoute componente='cita'>
+                <Citas />
+              </PrivilegedRoute>
+            }
+             
+          />
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />

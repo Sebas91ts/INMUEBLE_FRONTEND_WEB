@@ -9,7 +9,8 @@ import {
   Info,
   LogOut,
   Users,
-  Bell
+  Bell,
+  Calendar
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
@@ -85,7 +86,12 @@ export default function Navbar() {
       icon: Phone,
       componente: 'chat',
       protegido: true
-    }
+    },
+    { to: '/home/citas', 
+      label: 'Agenda', 
+      icon: Calendar, 
+      componente: 'cita', 
+      protegido: true }
   ]
 
   if (loading)

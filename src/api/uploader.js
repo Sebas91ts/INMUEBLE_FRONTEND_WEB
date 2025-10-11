@@ -1,4 +1,5 @@
 // Sube imagen a Cloudinary y devuelve la URL segura
+//src/api/uploader.js
 export async function uploadImageToCloudinary(file, onProgress) {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;

@@ -1,3 +1,4 @@
+// src/pages/Inmuebles/ListadoInmuebles.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getInmuebles } from "../../api/inmueble/index";

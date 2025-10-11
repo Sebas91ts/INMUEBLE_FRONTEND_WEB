@@ -41,16 +41,7 @@ export default function AgentesInmobiliaria() {
     const chat = result.data?.values
     if (!chat) return
 
-    // 🔹 Agregar chat al contexto para que aparezca en ChatList
-    agregarChat({
-      ...chat,
-      mensajes: chat.mensajes || [],
-      lastMessage:
-        chat.mensajes?.length > 0
-          ? chat.mensajes[chat.mensajes.length - 1].mensaje
-          : null,
-      unreadCount: chat.mensajes?.filter((m) => !m.leido).length || 0
-    })
+    agregarChat(chat)
 
     // 🔹 Navegar y pasar el ID del chat para abrirlo automáticamente
     navigate(`/home/chat?chatId=${chat.id}`)

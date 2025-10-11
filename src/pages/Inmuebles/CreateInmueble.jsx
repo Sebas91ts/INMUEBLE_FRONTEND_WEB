@@ -1,3 +1,4 @@
+// src/pages/Inmuebles/CreateInmueble.jsx
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -155,6 +156,7 @@ export default function CreateInmueble() {
   };
 
   // fotos (opcional)
+  // fotos (opcional)
   const onPickFiles = async (e) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
@@ -198,6 +200,7 @@ export default function CreateInmueble() {
     setSubiendo(false);
     e.target.value = "";
   };
+
 
   const removeFoto = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -258,6 +261,7 @@ export default function CreateInmueble() {
     setErr(null);
     setOk(null);
     setFieldErrors(null);
+    setFieldErrors(null);
 
     const fe = validations();
     if (Object.keys(fe).length) {
@@ -276,6 +280,8 @@ export default function CreateInmueble() {
       const payload = {
         ...(isAdmin && form.agente ? { agente: toInt(form.agente) } : {}),
         ...(form.cliente ? { cliente: toInt(form.cliente) } : {}),
+        ...(isAdmin && form.agente ? { agente: toInt(form.agente) } : {}),
+        ...(form.cliente ? { cliente: toInt(form.cliente) } : {}),
         tipo_inmueble_id: toInt(form.tipo_inmueble_id),
         titulo: form.titulo.trim(),
         descripcion: form.descripcion.trim(),
@@ -285,10 +291,12 @@ export default function CreateInmueble() {
         superficie: toFloat(form.superficie),
         dormitorios: toInt(form.dormitorios),
         ["baños"]: toInt(form.banos), // backend espera 'baños'
+        ["baños"]: toInt(form.banos), // backend espera 'baños'
         precio: toFloat(form.precio),
         tipo_operacion: form.tipo_operacion,
         latitud: toFloat(form.latitud),
         longitud: toFloat(form.longitud),
+        ...(fotosUrls.length ? { fotos_urls: fotosUrls } : {}),
         ...(fotosUrls.length ? { fotos_urls: fotosUrls } : {}),
       };
 
@@ -313,7 +321,6 @@ export default function CreateInmueble() {
       const apiFieldErrors = e2?.response?.data?.values;
       setErr(apiMsg ?? e2?.message ?? "Error al crear inmueble");
       if (apiFieldErrors && typeof apiFieldErrors === "object") setFieldErrors(apiFieldErrors);
-    } finally {
       setSaving(false);
     }
   };
@@ -707,3 +714,4 @@ export default function CreateInmueble() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+// src/pages/Permisos/Grupos.jsx
 import { useState } from 'react'
 import { PlusCircle, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { useGrupos } from '../../hooks/useGrupos'

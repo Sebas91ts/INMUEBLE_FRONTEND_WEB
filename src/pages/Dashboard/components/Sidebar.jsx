@@ -92,6 +92,13 @@ const baseMenuItems = [
     label: "Solicitudes de agentes",
     path: "/dashboard/solicitud-agente",
   },
+  {
+  id: 'solicitud-inmueble',
+  icon: Building,
+  label: 'Solicitudes de inmuebles',
+  path: '/dashboard/solicitud-inmueble'
+},
+
 ];
 
 export default function Sidebar() {
@@ -121,11 +128,16 @@ export default function Sidebar() {
         )
         .map((p) => p.componente.toLowerCase());
 
-  // 🧩 Filtrar menú base según los privilegios
+ // 🧩 Filtrar menú base según los privilegios
   const menuItems = baseMenuItems.filter((item) => {
     if (item.id === "dashboard") return true; // Dashboard siempre visible
     return privilegiosActivos.includes(item.id.toLowerCase());
   });
+//   const menuItems = baseMenuItems.filter((item) => {
+//   if (item.id === 'dashboard' || item.id === 'solicitud-inmueble') return true
+//   return privilegiosActivos.includes(item.id.toLowerCase())
+// })
+
 
   const handleLogout = async () => {
     await logout();

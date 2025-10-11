@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getChats, getMensajes } from '../api/chat/chat'
+import { getChats, getMensajes, marcarMensajeLeido } from '../api/chat/chat'
 
 export const ChatContext = createContext()
 
@@ -31,8 +31,13 @@ export function ChatProvider({ children }) {
             return {
               ...chat,
               mensajes,
-              lastMessage: mensajes.length > 0 ? mensajes[mensajes.length - 1].mensaje : null,
-              unreadCount: mensajes.filter((m) => !m.leido && m.usuario_id !== user.id).length
+              lastMessage:
+                mensajes.length > 0
+                  ? mensajes[mensajes.length - 1].mensaje
+                  : null,
+              unreadCount: mensajes.filter(
+                (m) => !m.leido && m.usuario_id !== user.id
+              ).length
             }
           })
         )
@@ -55,57 +60,59 @@ export function ChatProvider({ children }) {
 
     ws.onopen = () => console.log('[WS] Conectado')
     ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data)
-  console.log('[WS] Mensaje recibido en React:', msg)
+      const msg = JSON.parse(e.data)
+      console.log('[WS] Mensaje recibido en React:', msg)
 
-  // ⚡ CORREGIDO: Mejor detección de mensajes y evitar duplicados
-  if (msg.chat_id && msg.mensaje && msg.usuario_id) {
-    
-    // ⚡ EVITAR PROCESAR MENSAJES PROPIOS DEL WEBSOCKET
-    // (ya se agregaron localmente al enviar)
-    if (msg.usuario_id === user.id) {
-      console.log('🔄 Mensaje propio del WS, ignorando...')
-      return
-    }
-
-    setChats((prev) =>
-      prev.map((chat) => {
-        if (chat.id === msg.chat_id) {
-          const isCurrentChat = chat.id === selectedChatId
-          const nuevoMensaje = {
-            id: Date.now(), // ID temporal
-            mensaje: msg.mensaje,
-            usuario_id: msg.usuario_id,
-            usuario_nombre: msg.usuario_nombre,
-            fecha_envio: msg.fecha_envio,
-            leido: isCurrentChat
-          }
-
-          // ⚡ MEJOR DEDUPLICACIÓN
-          const mensajeExiste = chat.mensajes.some(m => 
-            m.mensaje === nuevoMensaje.mensaje && 
-            m.usuario_id === nuevoMensaje.usuario_id &&
-            Math.abs(new Date(m.fecha_envio) - new Date(nuevoMensaje.fecha_envio)) < 30000 // 30 segundos
-          )
-
-          if (!mensajeExiste) {
-            console.log('✅ Agregando mensaje NUEVO al chat:', nuevoMensaje)
-            return {
-              ...chat,
-              mensajes: [...chat.mensajes, nuevoMensaje],
-              lastMessage: nuevoMensaje.mensaje,
-              unreadCount: isCurrentChat ? 0 : (chat.unreadCount || 0) + 1
-            }
-          } else {
-            console.log('🔄 Mensaje duplicado, ignorando')
-            return chat
-          }
+      // ⚡ CORREGIDO: Mejor detección de mensajes y evitar duplicados
+      if (msg.chat_id && msg.mensaje && msg.usuario_id) {
+        // ⚡ EVITAR PROCESAR MENSAJES PROPIOS DEL WEBSOCKET
+        // (ya se agregaron localmente al enviar)
+        if (msg.usuario_id === user.id) {
+          console.log('🔄 Mensaje propio del WS, ignorando...')
+          return
         }
-        return chat
-      })
-    )
-  }
-}
+
+        setChats((prev) =>
+          prev.map((chat) => {
+            if (chat.id === msg.chat_id) {
+              const isCurrentChat = chat.id === selectedChatId
+              const nuevoMensaje = {
+                id: Date.now(), // ID temporal
+                mensaje: msg.mensaje,
+                usuario_id: msg.usuario_id,
+                usuario_nombre: msg.usuario_nombre,
+                fecha_envio: msg.fecha_envio,
+                leido: isCurrentChat
+              }
+
+              // ⚡ MEJOR DEDUPLICACIÓN
+              const mensajeExiste = chat.mensajes.some(
+                (m) =>
+                  m.mensaje === nuevoMensaje.mensaje &&
+                  m.usuario_id === nuevoMensaje.usuario_id &&
+                  Math.abs(
+                    new Date(m.fecha_envio) - new Date(nuevoMensaje.fecha_envio)
+                  ) < 30000 // 30 segundos
+              )
+
+              if (!mensajeExiste) {
+                console.log('✅ Agregando mensaje NUEVO al chat:', nuevoMensaje)
+                return {
+                  ...chat,
+                  mensajes: [...chat.mensajes, nuevoMensaje],
+                  lastMessage: nuevoMensaje.mensaje,
+                  unreadCount: isCurrentChat ? 0 : (chat.unreadCount || 0) + 1
+                }
+              } else {
+                console.log('🔄 Mensaje duplicado, ignorando')
+                return chat
+              }
+            }
+            return chat
+          })
+        )
+      }
+    }
 
     ws.onclose = () => console.log('[WS] Cerrado')
     ws.onerror = (err) => console.log('[WS] Error', err)
@@ -114,67 +121,100 @@ export function ChatProvider({ children }) {
     return () => ws.close()
   }, [user?.id, token, selectedChatId])
 
-const enviarMensaje = (chat_id, mensaje) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    // ⚡ ENVIAR FORMATO COMPATIBLE
-    const mensajeCompleto = {
-      chat_id,
-      mensaje,
-      usuario_id: user.id,
-      usuario_nombre: user.nombre,
-      fecha_envio: new Date().toISOString()
-    }
-    
-    socket.send(JSON.stringify(mensajeCompleto))
-    console.log(`📤 Mensaje enviado:`, mensajeCompleto)
-    
-    // ⚡ AGREGAR LOCALMENTE SOLO UNA VEZ
-    setChats(prev =>
-      prev.map(chat => {
-        if (chat.id === chat_id) {
-          const nuevoMensaje = {
-            id: -Date.now(), // ID negativo para diferenciar
-            mensaje,
-            usuario_id: user.id,
-            usuario_nombre: user.nombre,
-            fecha_envio: new Date().toISOString(),
-            leido: true
-          }
-          
-          // Verificar que no exista ya
-          const yaExiste = chat.mensajes.some(m => m.id === nuevoMensaje.id)
-          if (!yaExiste) {
-            return {
-              ...chat,
-              mensajes: [...chat.mensajes, nuevoMensaje],
-              lastMessage: mensaje
+  const enviarMensaje = (chat_id, mensaje) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      // ⚡ ENVIAR FORMATO COMPATIBLE
+      const mensajeCompleto = {
+        chat_id,
+        mensaje,
+        usuario_id: user.id,
+        usuario_nombre: user.nombre,
+        fecha_envio: new Date().toISOString()
+      }
+
+      socket.send(JSON.stringify(mensajeCompleto))
+      console.log(`📤 Mensaje enviado:`, mensajeCompleto)
+
+      // ⚡ AGREGAR LOCALMENTE SOLO UNA VEZ
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id === chat_id) {
+            const nuevoMensaje = {
+              id: -Date.now(), // ID negativo para diferenciar
+              mensaje,
+              usuario_id: user.id,
+              usuario_nombre: user.nombre,
+              fecha_envio: new Date().toISOString(),
+              leido: true
+            }
+
+            // Verificar que no exista ya
+            const yaExiste = chat.mensajes.some((m) => m.id === nuevoMensaje.id)
+            if (!yaExiste) {
+              return {
+                ...chat,
+                mensajes: [...chat.mensajes, nuevoMensaje],
+                lastMessage: mensaje
+              }
             }
           }
-        }
-        return chat
-      })
-    )
-  } else {
-    console.error('❌ WebSocket no conectado')
+          return chat
+        })
+      )
+    } else {
+      console.error('❌ WebSocket no conectado')
+    }
   }
-}
 
   // Función para marcar mensajes como leídos
-  const marcarMensajesLeidos = (mensajeIds, chatId) => {
-    setChats(prev =>
-      prev.map(chat => {
-        if (chat.id === chatId) {
-          return {
-            ...chat,
-            mensajes: chat.mensajes.map(msg =>
-              mensajeIds.includes(msg.id) ? { ...msg, leido: true } : msg
-            ),
-            unreadCount: 0
+  const marcarMensajesLeidos = async (mensajeIds = [], chatId) => {
+    if (!mensajeIds.length || !chatId) return
+
+    try {
+      // 📨 Actualiza en backend
+      await marcarMensajeLeido(mensajeIds)
+
+      // 🧠 Actualiza localmente el estado
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              mensajes: chat.mensajes.map((msg) =>
+                mensajeIds.includes(msg.id) ? { ...msg, leido: true } : msg
+              ),
+              unreadCount: 0
+            }
           }
+          return chat
+        })
+      )
+
+      console.log(
+        '✅ Mensajes marcados como leídos en backend y frontend:',
+        mensajeIds
+      )
+    } catch (error) {
+      console.error('❌ Error marcando mensajes como leídos:', error)
+    }
+  }
+
+  const agregarChat = (nuevoChat) => {
+    setChats((prev) => {
+      const existe = prev.some((c) => c.id === nuevoChat.id)
+      if (existe) return prev
+
+      return [
+        ...prev,
+        {
+          ...nuevoChat,
+          mensajes: nuevoChat.mensajes || [],
+          unreadCount: 0,
+          lastMessage:
+            nuevoChat.mensajes?.[nuevoChat.mensajes.length - 1]?.mensaje || null
         }
-        return chat
-      })
-    )
+      ]
+    })
   }
 
   return (
@@ -184,6 +224,7 @@ const enviarMensaje = (chat_id, mensaje) => {
         enviarMensaje,
         selectedChatId,
         setSelectedChatId,
+        agregarChat,
         marcarMensajesLeidos // ⬅️ AÑADIR esta función
       }}
     >

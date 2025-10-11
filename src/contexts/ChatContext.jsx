@@ -199,6 +199,24 @@ export function ChatProvider({ children }) {
     }
   }
 
+  const agregarChat = (nuevoChat) => {
+    setChats((prev) => {
+      const existe = prev.some((c) => c.id === nuevoChat.id)
+      if (existe) return prev
+
+      return [
+        ...prev,
+        {
+          ...nuevoChat,
+          mensajes: nuevoChat.mensajes || [],
+          unreadCount: 0,
+          lastMessage:
+            nuevoChat.mensajes?.[nuevoChat.mensajes.length - 1]?.mensaje || null
+        }
+      ]
+    })
+  }
+
   return (
     <ChatContext.Provider
       value={{
@@ -206,6 +224,7 @@ export function ChatProvider({ children }) {
         enviarMensaje,
         selectedChatId,
         setSelectedChatId,
+        agregarChat,
         marcarMensajesLeidos // ⬅️ AÑADIR esta función
       }}
     >

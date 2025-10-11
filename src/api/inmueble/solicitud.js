@@ -1,4 +1,5 @@
-//src/api/inmueble/estados.js
+//src/api/inmueble/solicitud.js
+import instancia from "../axios"; // 
 /* =========================================================
    📊 ADMIN — GESTIÓN DE ESTADOS
 ========================================================= */

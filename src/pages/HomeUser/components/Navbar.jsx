@@ -1,3 +1,4 @@
+// src/pages/HomeUser/components/Navbar.jsx
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useContext, useMemo } from 'react'
 import {
@@ -85,28 +86,69 @@ export default function Navbar() {
       icon: Phone,
       componente: 'chat',
       protegido: true
-    }
+    },
+    {
+  to: '/home/mis-inmuebles/aprobados',
+  label: 'Mis Inmuebles',
+  icon: Building2,
+  componente: 'Inmueble',
+  protegido: true
+}
+
   ]
 
   if (loading)
     return <div className='p-4 text-gray-500'>Cargando permisos...</div>
 
   // Filtrar links según privilegios
-  const linksFiltrados = navLinks.filter((link) => {
-    if (!link.protegido) return true
-    if (!user) return false
-    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
+  // const linksFiltrados = navLinks.filter((link) => {
+  //   if (!link.protegido) return true
+  //   if (!user) return false
+  //   if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
 
-    return privilegios.some(
-      (p) =>
-        p.componente.toLowerCase() === link.componente.toLowerCase() &&
-        (p.puede_crear ||
-          p.puede_actualizar ||
-          p.puede_eliminar ||
-          p.puede_leer ||
-          p.puede_activar)
-    )
-  })
+  //   // Links públicos → siempre mostrar
+  //   if (!link.protegido) return true
+
+  //   if (!user) return false
+  //   if (user.grupo_nombre?.toLowerCase() === 'administrador') return true // Admin ve todo
+
+  //   // Revisar privilegios solo para links protegidos
+  //   return privilegios.some(
+  //     (p) =>
+  //       p.componente.toLowerCase() === link.componente.toLowerCase() &&
+  //       (p.puede_crear ||
+  //         p.puede_actualizar ||
+  //         p.puede_eliminar ||
+  //         p.puede_leer ||
+  //         p.puede_activar)
+  //   )
+  // })
+
+  // Filtrar links según privilegios
+const linksFiltrados = navLinks.filter((link) => {
+  if (!link.protegido) return true;
+  if (!user) return false;
+
+  // 🧩 Solo mostrar "Mis Inmuebles" si el usuario es agente
+  if (link.label === "Mis Inmuebles" && user.grupo_nombre?.toLowerCase() !== "agente") {
+    return false;
+  }
+
+  // 🧩 El administrador ve todo
+  if (user.grupo_nombre?.toLowerCase() === "administrador") return true;
+
+  // 🧩 Verificar privilegios normales
+  return privilegios.some(
+    (p) =>
+      p.componente.toLowerCase() === link.componente.toLowerCase() &&
+      (p.puede_crear ||
+        p.puede_actualizar ||
+        p.puede_eliminar ||
+        p.puede_leer ||
+        p.puede_activar)
+  );
+});
+
 
   const handleLogout = async () => {
     await logout()

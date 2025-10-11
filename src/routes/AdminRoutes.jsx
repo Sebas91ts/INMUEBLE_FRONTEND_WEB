@@ -9,6 +9,7 @@ import Grupos from '../pages/Permisos/Grupos'
 import Privilegios from '../pages/Permisos/Privilegios'
 import Componentes from '../pages/Permisos/Componentes'
 import SolicitudesAgentes from '../pages/SolicitudAgente/SolicitudAgente'
+import SolicitudInmueble from '../pages/SolicitudInmueble/SolicitudInmueble'
 import Contratos from '../pages/Contratos/Contratos'
 import UsuariosDashboard from '../pages/Usuarios/Usuarios'
 import EditarPerfil from '../pages/Dashboard/components/EditarPerfil'
@@ -89,6 +90,7 @@ export default function AdminRoutes() {
         <Route path='permisos/privilegios' element={<Privilegios />} />
         <Route path='permisos/componentes' element={<Componentes />} />
         <Route path='solicitud-agente' element={<SolicitudesAgentes />} />
+        <Route path='solicitud-inmueble' element={<SolicitudInmueble />} />
         <Route path='contratos' element={<Contratos />} />
         <Route path='usuarios' element={<UsuariosDashboard />} />
         <Route path='editar-perfil' element={<EditarPerfil />} />

@@ -12,7 +12,6 @@ import { ChatProvider } from '../contexts/ChatContext'
 import EnAprobado from "../pages/Inmueble/Agente/MisInmuebles";
 import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble"; 
 
-import EnAprobado from "../pages/Inmueble/Agente/EnAprobado";
 
 export default function UserRoutes() {
   return (

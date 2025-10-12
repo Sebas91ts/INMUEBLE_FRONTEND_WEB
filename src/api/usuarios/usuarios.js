@@ -34,3 +34,9 @@ export const activarUsuario = async (id) => {
 export const getAgentes = async () => {
   return instancia.get('usuario/listar-agentes');  
 }
+export const descargarContratoServicios = async (data) => {
+    const response = await instancia.post('/usuario/generarContratoDeServiciosPdf', data, {
+      responseType: 'blob'
+    })
+    return response
+}

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Loader2, X } from "lucide-react";
 
 import { getMisInmuebles, getResumenMisInmuebles } from "../../../api/inmueble";
-import { crearAnuncio, actualizarAnuncio } from "../../../api/inmueble/anuncios";
+import { actualizarAnuncio, publicarInmueble } from "../../../api/inmueble/anuncios";
 
 import InmuebleCard from "../../Inmuebles/components/InmuebleCard";
 import ApprovalModal from "../../../components/AprovalModal";
@@ -16,6 +16,15 @@ const TABS = [
   { key: "publicados", label: "Publicados" },
   { key: "todos", label: "Todos" },
 ];
+
+// helpers de parseo
+const pick = (resp) => resp?.data ?? resp ?? {};
+const ok = (resp) => {
+  const d = pick(resp);
+  if (typeof d?.status !== "undefined") return d.status === 1 && !d.error;
+  return true;
+};
+const valuesOf = (resp) => pick(resp)?.values ?? pick(resp);
 
 export default function MisInmuebles() {
   const navigate = useNavigate();
@@ -34,14 +43,18 @@ export default function MisInmuebles() {
   const [okOpen, setOkOpen] = useState(false);
   const [okMsg, setOkMsg] = useState("");
 
-  // 🔄 fuerza a las viñetas a re-consultar /inmueble/anuncio/:anuncio_id/estado/
+  // refresco de badges
   const [refreshKey, setRefreshKey] = useState(0);
   const forceBadgesRefresh = () => setRefreshKey((v) => v + 1);
 
-  // Habilita "Publicar" solo si existe anuncio y estado === "disponible"
+  // Habilita "Publicar" en el panel si el inmueble está aprobado:
+  // - sin anuncio aún, o
+  // - con anuncio en "disponible" (lo reactiva si estuviera inactivo)
   const puedePublicar = useMemo(() => {
-    const st = String(sel?.anuncio?.estado || "").toLowerCase();
-    return Boolean(sel?.anuncio?.id) && st === "disponible";
+    const estInm = String(sel?.estado || "").toLowerCase();
+    if (estInm !== "aprobado") return false;
+    const stAn = String(sel?.anuncio?.estado || "").toLowerCase();
+    return !sel?.anuncio?.id || stAn === "disponible";
   }, [sel]);
 
   const loadData = async (estado) => {
@@ -51,13 +64,15 @@ export default function MisInmuebles() {
         getMisInmuebles(estado),
         getResumenMisInmuebles(),
       ]);
-      setInmuebles(listaRes?.data?.values?.inmuebles ?? []);
-      setResumen(resumenRes?.data?.values ?? null);
-      // cada vez que cambia la lista (tab) forzamos actualización de viñetas
+      const listaVals = valuesOf(listaRes);
+      const resumenVals = valuesOf(resumenRes);
+      setInmuebles(listaVals?.inmuebles ?? []);
+      setResumen(resumenVals ?? null);
       forceBadgesRefresh();
     } catch (err) {
       console.error("❌ Error cargando mis inmuebles:", err);
       setInmuebles([]);
+      setResumen(null);
     } finally {
       setLoading(false);
     }
@@ -69,13 +84,13 @@ export default function MisInmuebles() {
   }, [tab]);
 
   const badgeCount = (k) => {
-    if (!resumen) return 0;
+    const r = resumen || {};
     const m = {
-      aprobado: resumen.aprobados,
-      pendiente: resumen.pendientes,
-      rechazado: resumen.rechazados,
-      publicados: resumen.publicados,
-      todos: resumen.todos,
+      aprobado: r.aprobados || 0,
+      pendiente: r.pendientes || 0,
+      rechazado: r.rechazados || 0,
+      publicados: r.publicados || 0,
+      todos: r.todos || (Array.isArray(inmuebles) ? inmuebles.length : 0),
     };
     return m[k] ?? 0;
   };
@@ -89,37 +104,74 @@ export default function MisInmuebles() {
     setSel(null);
   };
 
+  // merge seguro de anuncio
+  const patchAnuncio = (prevAnuncio, patch) => ({
+    ...(prevAnuncio || {}),
+    ...patch,
+  });
+
   const patchInmuebleInList = (id, patch) => {
-    setInmuebles((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+    setInmuebles((prev) =>
+      prev.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              ...patch,
+              anuncio: patch?.anuncio ? patchAnuncio(x.anuncio, patch.anuncio) : x.anuncio,
+            }
+          : x
+      )
+    );
   };
 
-  // Cambiar estado -> si no hay anuncio se crea y guardamos el id (para viñetas)
+  // Cambiar estado:
+  // - Si NO hay anuncio: primero publicarInmueble(sel.id) (crea/activa con "disponible"),
+  //   luego, si nuevoEstado !== "disponible", PATCH.
+  // - Si hay anuncio: PATCH directo.
   const onCambiarEstado = async (nuevoEstado) => {
     if (!sel) return;
     try {
       setBusy(true);
-      let resp;
-      if (sel?.anuncio?.id) {
-        resp = await actualizarAnuncio(sel.anuncio.id, { estado: nuevoEstado });
-      } else {
-        resp = await crearAnuncio(sel.id, nuevoEstado, true); // crea y devuelve id/estado/is_active
-      }
-      if (!(resp?.status === 1 && !resp?.error)) {
-        throw new Error(resp?.message || "No se pudo actualizar el estado.");
+
+      let anuncioId = sel?.anuncio?.id ?? null;
+      let estadoBase = "disponible";
+      let activoBase = true;
+
+      if (!anuncioId) {
+        const respPub = await publicarInmueble(sel.id);
+        if (!ok(respPub)) {
+          const d = pick(respPub);
+          throw new Error(d?.message || "No se pudo preparar la publicación.");
+        }
+        const v = valuesOf(respPub) ?? {};
+        anuncioId = v.anuncio_id ?? null;
+        estadoBase = v.estado_anuncio ?? "disponible";
+        activoBase = Boolean(v.publicado);
       }
 
-      const { values } = resp || {};
-      const nextAnuncio = {
-        id: values?.id ?? sel?.anuncio?.id ?? null,
-        estado: (values?.estado || nuevoEstado) ?? null,
-        is_active: typeof values?.is_active === "boolean" ? values.is_active : (sel?.anuncio?.is_active ?? true),
-      };
+      let finalEstado = estadoBase;
+      let finalActivo = activoBase;
 
-      // refresca selección y lista
-      setSel((prev) => ({ ...prev, anuncio: nextAnuncio }));
+      if (nuevoEstado && nuevoEstado !== "disponible") {
+        const respPatch = await actualizarAnuncio(anuncioId, { estado: nuevoEstado });
+        if (!ok(respPatch)) {
+          const d = pick(respPatch);
+          throw new Error(d?.message || "No se pudo cambiar el estado del anuncio.");
+        }
+        const vals = valuesOf(respPatch) ?? {};
+        finalEstado = vals.estado ?? nuevoEstado;
+        finalActivo = typeof vals.is_active === "boolean" ? vals.is_active : activoBase;
+      }
+
+      const nextAnuncio = { id: anuncioId, estado: finalEstado, is_active: finalActivo };
+
+      setSel((prev) => ({ ...prev, anuncio: patchAnuncio(prev?.anuncio, nextAnuncio) }));
       patchInmuebleInList(sel.id, { anuncio: nextAnuncio });
 
-      // fuerza a las viñetas a re-consultar por anuncio.id
+      try {
+        const resumenRes = await getResumenMisInmuebles();
+        setResumen(valuesOf(resumenRes) ?? null);
+      } catch {}
       forceBadgesRefresh();
 
       setOkMsg("Estado del anuncio actualizado.");
@@ -138,20 +190,30 @@ export default function MisInmuebles() {
     try {
       setBusy(true);
       const resp = await actualizarAnuncio(sel.anuncio.id, { is_active: !sel.anuncio.is_active });
-      if (!(resp?.status === 1 && !resp?.error)) {
-        throw new Error(resp?.message || "No se pudo actualizar activo/inactivo.");
+      if (!ok(resp)) {
+        const d = pick(resp);
+        throw new Error(d?.message || "No se pudo actualizar activo/inactivo.");
       }
 
-      const { values } = resp || {};
+      const vals = valuesOf(resp);
       const nextAnuncio = {
-        id: values?.id ?? sel?.anuncio?.id,
-        estado: values?.estado ?? sel?.anuncio?.estado,
-        is_active: typeof values?.is_active === "boolean" ? values.is_active : !sel?.anuncio?.is_active,
+        id: vals?.id ?? sel?.anuncio?.id,
+        estado: vals?.estado ?? sel?.anuncio?.estado,
+        is_active: typeof vals?.is_active === "boolean" ? vals.is_active : !sel?.anuncio?.is_active,
       };
 
-      setSel((prev) => ({ ...prev, anuncio: nextAnuncio }));
-      patchInmuebleInList(sel.id, { anuncio: nextAnuncio });
+      setSel((prev) => ({ ...prev, anuncio: patchAnuncio(prev?.anuncio, nextAnuncio) }));
 
+      if (tab === "publicados" && !nextAnuncio.is_active) {
+        setInmuebles((prev) => prev.filter((x) => x.id !== sel.id));
+      } else {
+        patchInmuebleInList(sel.id, { anuncio: nextAnuncio });
+      }
+
+      try {
+        const resumenRes = await getResumenMisInmuebles();
+        setResumen(valuesOf(resumenRes) ?? null);
+      } catch {}
       forceBadgesRefresh();
 
       setOkMsg(nextAnuncio.is_active ? "Anuncio activado." : "Anuncio desactivado.");
@@ -164,30 +226,42 @@ export default function MisInmuebles() {
     }
   };
 
-  // Publicar (solo si estado === disponible)
-  const onPublicar = async () => {
-    if (!sel?.anuncio?.id) return;
-    const st = String(sel.anuncio.estado || "").toLowerCase();
-    if (st !== "disponible") return;
-
+  // Publicar (crea o reactiva: disponible + activo)
+  const onPublicar = async (inmueble) => {
+    const item = inmueble || sel;
+    if (!item) return;
     try {
       setBusy(true);
-      const resp = await actualizarAnuncio(sel.anuncio.id, { is_active: true });
-      if (!(resp?.status === 1 && !resp?.error)) throw new Error(resp?.message || "No se pudo publicar.");
-
-      const { values } = resp || {};
+      const resp = await publicarInmueble(item.id);
+      if (!ok(resp)) {
+        const d = pick(resp);
+        throw new Error(d?.message || "No se pudo publicar.");
+      }
+      const v = valuesOf(resp) ?? {};
       const nextAnuncio = {
-        id: values?.id ?? sel?.anuncio?.id,
-        estado: values?.estado ?? sel?.anuncio?.estado,
-        is_active: true,
+        id: v.anuncio_id ?? item?.anuncio?.id ?? null,
+        estado: v.estado_anuncio ?? "disponible",
+        is_active: Boolean(v.publicado),
       };
 
-      setSel((prev) => ({ ...prev, anuncio: nextAnuncio }));
-      patchInmuebleInList(sel.id, { anuncio: nextAnuncio });
+      if (sel && item.id === sel.id) {
+        setSel((prev) => ({ ...prev, anuncio: nextAnuncio }));
+      }
 
+      if (tab === "aprobado") {
+        // se mueve a 'publicados': sácalo del listado actual
+        setInmuebles((prev) => prev.filter((x) => x.id !== item.id));
+      } else {
+        patchInmuebleInList(item.id, { anuncio: nextAnuncio });
+      }
+
+      try {
+        const resumenRes = await getResumenMisInmuebles();
+        setResumen(valuesOf(resumenRes) ?? null);
+      } catch {}
       forceBadgesRefresh();
 
-      setOkMsg("Anuncio publicado (Disponible y Activo).");
+      setOkMsg("Inmueble publicado/activado.");
       setOkOpen(true);
     } catch (e) {
       console.error("❌ Publicar:", e);
@@ -204,11 +278,11 @@ export default function MisInmuebles() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-800">🏠 Mis Inmuebles</h1>
         <button
-     onClick={() => navigate("/home/mis-inmuebles/historial")}
-     className="border px-4 py-2 rounded hover:bg-gray-100"
-   >
-     Historial de publicaciones
-   </button>
+          onClick={() => navigate("/home/mis-inmuebles/historial")}
+          className="border px-4 py-2 rounded hover:bg-gray-100"
+        >
+          Historial de publicaciones
+        </button>
         <button
           onClick={goCrear}
           className="inline-flex items-center gap-2 rounded-lg bg-stone-900 px-4 py-2 text-white hover:bg-stone-800"
@@ -243,34 +317,27 @@ export default function MisInmuebles() {
       ) : inmuebles.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-stone-600">
           <p className="mb-4">No hay inmuebles en esta categoría.</p>
-          <button
-            onClick={goCrear}
-            className="inline-flex items-center gap-2 rounded-lg border border-stone-900 px-4 py-2 text-stone-900 hover:bg-stone-100"
-          >
-            <Plus className="h-4 w-4" />
-            Crear inmueble
-          </button>
+
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {inmuebles.map((it) => (
-            <div key={it.id} className="flex flex-col gap-2">
-              {/* 👉 Viñeta consulta por anuncio.id y se actualiza con refreshKey */}
+            <div
+              key={`${it.id}:${it?.anuncio?.is_active ? "on" : "off"}:${it?.anuncio?.estado || "none"}`}
+              className="flex flex-col"
+            >
               <InmuebleCard
-                data={it}
-                showBadge
-                refreshKey={refreshKey}
-                onClick={() => openPanel(it)}
+                  data={it}
+                  showBadge
+                  refreshKey={refreshKey}
+                  onEstadoClick={() => openPanel(it)}
+                  onPublicar={() => onPublicar(it)}
+                  onOpenDetalle={() => navigate(`/home/propiedades/${it.id}`)}    
+                  publishing={busy}
+                  showPublishInCard={tab === "aprobado"} 
+                
               />
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openPanel(it)}
-                  className="px-3 py-2 rounded-lg bg-stone-900 text-white hover:opacity-90"
-                >
-                  Estado
-                </button>
-              </div>
+              {/* 🔥 Se elimina el botón "Estado" que estaba debajo del card */}
             </div>
           ))}
         </div>
@@ -282,7 +349,7 @@ export default function MisInmuebles() {
           <aside className="fixed right-0 top-0 h-dvh w-full sm:w-[420px] z-50">
             <div className="h-full bg-white shadow-xl p-4 sm:p-5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Acciones del anuncio</h3>
+                <h3 className="text-sm font-bold">Modificar Estado</h3>
                 <button onClick={closePanel} className="p-2 rounded-lg hover:bg-neutral-100" title="Cerrar">
                   <X className="w-5 h-5" />
                 </button>
@@ -295,18 +362,6 @@ export default function MisInmuebles() {
                 </div>
               </div>
 
-              <button
-                onClick={onPublicar}
-                disabled={!puedePublicar || busy}
-                className={`mt-4 w-full h-[42px] rounded-lg text-sm font-semibold ${
-                  puedePublicar && !busy
-                    ? "bg-black text-white hover:opacity-90"
-                    : "bg-neutral-800/10 text-neutral-700 cursor-not-allowed"
-                }`}
-              >
-                Publicar
-              </button>
-
               <div className="mt-4 text-xs text-neutral-600">Cambiar estado</div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {[
@@ -315,7 +370,7 @@ export default function MisInmuebles() {
                   { k: "alquilado", label: "Alquilado" },
                   { k: "anticretico", label: "Anticrético" },
                 ].map((btn) => {
-                  const active = sel?.anuncio?.estado === btn.k;
+                  const active = String(sel?.anuncio?.estado || "") === btn.k;
                   const cls = active
                     ? "bg-neutral-200 cursor-default border-neutral-300"
                     : "bg-white hover:bg-neutral-100 border";

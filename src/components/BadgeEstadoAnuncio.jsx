@@ -18,14 +18,18 @@ const clsByEstado = (estado, activo) => {
   }
 };
 
-export default function BadgeEstadoAnuncio({ anuncioId, refreshKey = 0 }) {
+export default function BadgeEstadoAnuncio({
+  anuncioId,
+  refreshKey = 0,
+  className = "",
+  loadingText = "Consultando…",
+}) {
   const [loading, setLoading] = useState(false);
   const [estado, setEstado] = useState(null);
   const [activo, setActivo] = useState(false);
 
   useEffect(() => {
     let alive = true;
-
     const fetchEstado = async () => {
       if (!anuncioId) {
         setEstado(null);
@@ -35,13 +39,12 @@ export default function BadgeEstadoAnuncio({ anuncioId, refreshKey = 0 }) {
       setLoading(true);
       try {
         const resp = await getEstadoAnuncioById(anuncioId);
-        // resp.values.anuncio: { id, estado, is_active }
         const an = resp?.values?.anuncio || null;
         if (alive) {
           setEstado(an?.estado || null);
           setActivo(!!an?.is_active);
         }
-      } catch (e) {
+      } catch {
         if (alive) {
           setEstado(null);
           setActivo(false);
@@ -50,16 +53,13 @@ export default function BadgeEstadoAnuncio({ anuncioId, refreshKey = 0 }) {
         if (alive) setLoading(false);
       }
     };
-
     fetchEstado();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [anuncioId, refreshKey]);
 
   if (!anuncioId) {
     return (
-      <span className="inline-block rounded-full px-2.5 py-1 text-xs font-semibold bg-stone-400 text-white">
+      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold bg-stone-400 text-white ${className}`}>
         Sin anuncio
       </span>
     );
@@ -67,8 +67,8 @@ export default function BadgeEstadoAnuncio({ anuncioId, refreshKey = 0 }) {
 
   if (loading) {
     return (
-      <span className="inline-block rounded-full px-2.5 py-1 text-xs font-semibold bg-stone-300 text-stone-800 animate-pulse">
-        Consultando…
+      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold bg-stone-300 text-stone-800 animate-pulse ${className}`}>
+        {loadingText}
       </span>
     );
   }
@@ -79,10 +79,7 @@ export default function BadgeEstadoAnuncio({ anuncioId, refreshKey = 0 }) {
 
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold shadow ${clsByEstado(
-        estado,
-        activo
-      )}`}
+      className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold shadow ${clsByEstado(estado, activo)} ${className}`}
       title={`Estado: ${texto}`}
     >
       {texto}

@@ -1,128 +1,117 @@
-import { useEffect, useState } from "react";
-import instancia from "../../../api/axios";
+// src/pages/Inmuebles/components/InmuebleCard.jsx
+import BadgeEstadoAnuncio from "../../../components/BadgeEstadoAnuncio";
 
-// Intenta consultar el estado probando varias rutas soportadas
-async function fetchEstadoAnuncio({ anuncioId, inmuebleId }) {
-  // helper que intenta una URL y devuelve null si falla
-  const tryGet = async (url) => {
-    try {
-      const { data } = await instancia.get(url);
-      const an = data?.values?.anuncio ?? null;
-      return an
-        ? { exists: true, estado: an.estado || null, is_active: !!an.is_active }
-        : { exists: false, estado: null, is_active: false };
-    } catch (e) {
-      return null; // para que el caller pruebe la siguiente forma
-    }
-  };
-
-  // 1) Por anuncio id
-  if (anuncioId) {
-    const r1 = await tryGet(`inmueble/anuncio/${anuncioId}/estado/`);
-    if (r1) return r1;
-  }
-
-  // 2) Por inmueble id (ruta tipo /inmueble/anuncio/<inmueble_id>/estado/)
-  if (inmuebleId) {
-    const r2 = await tryGet(`inmueble/anuncio/${inmuebleId}/estado/`);
-    if (r2) return r2;
-  }
-
-  // 3) Por query param (ruta tipo /inmueble/anuncio/estado?inmueble=<id>)
-  if (inmuebleId) {
-    const r3 = await tryGet(`inmueble/anuncio/estado?inmueble=${encodeURIComponent(inmuebleId)}`);
-    if (r3) return r3;
-  }
-
-  // Si nada funcionó: sin anuncio
-  return { exists: false, estado: null, is_active: false };
-}
-
-function BadgeEstadoAnuncio({ anuncioId, inmuebleId, refreshKey = 0 }) {
-  const [loading, setLoading] = useState(true);
-  const [exists, setExists] = useState(false);
-  const [estado, setEstado] = useState(null);
-  const [isActive, setIsActive] = useState(false);
-
-  useEffect(() => {
-    let cancel = false;
-
-    (async () => {
-      setLoading(true);
-      const res = await fetchEstadoAnuncio({ anuncioId, inmuebleId });
-      if (!cancel) {
-        setExists(res.exists);
-        setEstado(res.estado);
-        setIsActive(res.is_active);
-        setLoading(false);
-      }
-    })();
-
-    return () => { cancel = true; };
-  }, [anuncioId, inmuebleId, refreshKey]);
-
-  if (loading) {
-    return (
-      <span className="absolute left-3 top-3 z-30 rounded-full px-2.5 py-1 text-xs font-semibold text-white bg-gray-500/70">
-        Cargando…
-      </span>
-    );
-  }
-
-  if (!exists) {
-    return (
-      <span className="absolute left-3 top-3 z-30 rounded-full px-2.5 py-1 text-xs font-semibold text-white bg-gray-600">
-        Sin anuncio
-      </span>
-    );
-  }
-
-  const k = String(estado || "").toLowerCase();
-  const map = {
-    disponible:  { text: isActive ? "Disponible" : "Disponible • Inactivo", cls: isActive ? "bg-green-600"  : "bg-gray-700" },
-    vendido:     { text: isActive ? "Vendido"    : "Vendido • Inactivo",    cls: isActive ? "bg-red-600"    : "bg-gray-700" },
-    alquilado:   { text: isActive ? "Alquilado"  : "Alquilado • Inactivo",  cls: isActive ? "bg-amber-600"  : "bg-gray-700" },
-    anticretico: { text: isActive ? "Anticrético": "Anticrético • Inactivo",cls: isActive ? "bg-indigo-600" : "bg-gray-700" },
-  };
-  const conf = map[k] || { text: "—", cls: "bg-gray-600" };
-
-  return (
-    <span
-      className={`absolute left-3 top-3 z-30 rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow ${conf.cls}`}
-      style={{ pointerEvents: "none" }}
-    >
-      {conf.text}
-    </span>
-  );
-}
-
-export default function InmuebleCard({ data, onClick, showBadge = true, refreshKey = 0 }) {
+export default function InmuebleCard({
+  data,
+  showBadge = true,
+  refreshKey = 0,
+  onEstadoClick,               // abre panel lateral
+  onPublicar,                  // publicar
+  onOpenDetalle,               // 👈 navegar a detalle
+  publishing = false,
+  showPublishInCard = true,
+}) {
   const fotos = Array.isArray(data?.fotos) ? data.fotos : [];
-  const hero = fotos.length ? fotos[0].url : null;
+  const hero  = fotos.length ? fotos[0].url : null;
 
-  const anuncioId  = data?.anuncio?.id || null; // puede NO venir
-  const inmuebleId = data?.id;
+  const anuncioId  = data?.anuncio?.id || null;
+  const estadoInm  = String(data?.estado || "").toLowerCase();
+  const estadoAn   = String(data?.anuncio?.estado || "").toLowerCase();
+  const publicadoActivo = !!data?.anuncio?.is_active && estadoAn === "disponible";
+
+  const puedePublicar = showPublishInCard && estadoInm === "aprobado" && !publicadoActivo;
+
+  const openDetalle = () => {
+    if (typeof onOpenDetalle === "function") onOpenDetalle(data);
+  };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden border cursor-pointer relative" onClick={onClick}>
-      {showBadge && (
-        <BadgeEstadoAnuncio anuncioId={anuncioId} inmuebleId={inmuebleId} refreshKey={refreshKey} />
-      )}
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden border relative">
+      {/* Imagen clickable */}
+      <div
+        className="cursor-pointer"
+        onClick={openDetalle}
+        title="Ver detalle de la propiedad"
+        role="button"
+      >
+        {hero ? (
+          <img src={hero} alt={data?.titulo || "inmueble"} className="w-full h-56 object-cover" />
+        ) : (
+          <div className="w-full h-56 bg-stone-200 grid place-items-center text-stone-500">
+            Sin fotos
+          </div>
+        )}
+      </div>
 
-      {hero ? (
-        <img src={hero} alt={data?.titulo} className="w-full h-56 object-cover" />
-      ) : (
-        <div className="w-full h-56 bg-stone-200 grid place-items-center text-stone-500">Sin fotos</div>
-      )}
-
+      {/* Contenido */}
       <div className="p-5 bg-stone-50">
-        <h3 className="font-semibold text-xl text-stone-900 leading-tight">{data?.titulo}</h3>
-        <p className="text-stone-600 mt-1">
-          {data?.direccion}{data?.ciudad ? `, ${data.ciudad}` : ""}
+        {/* Título + Badge a la derecha (título clickable) */}
+        <div className="flex items-start justify-between gap-3">
+          <h3
+            className="font-semibold text-xl text-stone-900 leading-tight truncate cursor-pointer hover:underline"
+            onClick={openDetalle}
+            title="Ver detalle de la propiedad"
+            role="button"
+          >
+            {data?.titulo || "Sin título"}
+          </h3>
+
+          {showBadge && (
+            <BadgeEstadoAnuncio
+              key={`${anuncioId ?? "na"}-${refreshKey}`}
+              anuncioId={anuncioId}
+              refreshKey={refreshKey}
+              className="shrink-0"
+            />
+          )}
+        </div>
+
+        {/* Dirección */}
+        <p className="text-stone-600 mt-1 truncate">
+          {data?.direccion || "—"}{data?.ciudad ? `, ${data.ciudad}` : ""}
         </p>
+
+        {/* Precio */}
         <p className="mt-2 font-semibold text-blue-600">
           Precio: {Number(data?.precio || 0).toFixed(2)}
         </p>
+
+        {/* Footer: Estado + Publicar */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => typeof onEstadoClick === "function" && onEstadoClick(data)}
+            className="h-[38px] rounded-lg text-sm border border-stone-300 text-stone-800 hover:bg-stone-100"
+            title="Ver/editar estado del anuncio"
+          >
+            Estado
+          </button>
+
+          {puedePublicar ? (
+            <button
+              type="button"
+              onClick={() => typeof onPublicar === "function" && onPublicar(data)}
+              disabled={publishing}
+              className={`h-[38px] rounded-lg text-sm font-semibold ${
+                publishing
+                  ? "bg-neutral-800/10 text-neutral-700 cursor-not-allowed"
+                  : "bg-black text-white hover:opacity-90"
+              }`}
+              title="Publicar este inmueble"
+            >
+              {publishing ? "Publicando..." : "Publicar"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="h-[38px] rounded-lg text-sm bg-neutral-800/10 text-neutral-700 cursor-not-allowed"
+              title="Solo para inmuebles aprobados no publicados"
+            >
+              Publicar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

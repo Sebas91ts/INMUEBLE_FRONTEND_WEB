@@ -9,11 +9,13 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
-import EnAprobado from '../pages/Inmueble/Agente/MisInmuebles'
-import CreateInmuebleAgente from '../pages/Inmueble/Agente/CreateInmueble'
+import EnAprobado from "../pages/Inmueble/Agente/MisInmuebles";
+import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble"; 
 import Desempeno from '../pages/Desempeno/Desempeno'
 import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
-import Citas from '../pages/Citas/Citas'
+import Citas from '../pages/Citas/Citas';
+import HistorialPublicaciones from "../pages/Inmueble/Agente/HistorialPublicaciones";
+import DetalleHistorial from "../pages/Inmueble/Agente/DetalleHistorial";
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
 
 export default function UserRoutes() {
@@ -87,6 +89,8 @@ export default function UserRoutes() {
           >
             <Route path='aprobados' element={<EnAprobado />} />
             <Route path='crear' element={<CreateInmuebleAgente />} />
+            <Route path='historial' element={<HistorialPublicaciones />} />
+            <Route path='detalle/:id' element={<DetalleHistorial />} />
           </Route>
           <Route
             path='citas'
@@ -104,6 +108,7 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
+          
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />

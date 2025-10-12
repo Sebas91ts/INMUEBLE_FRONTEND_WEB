@@ -1,4 +1,4 @@
-// 📁 src/pages/SolicitudInmueble/SolicitudInmueble.jsx
+// src/pages/SolicitudInmueble/SolicitudInmueble.jsx
 import React, { useEffect, useState } from "react";
 import {
   getSolicitudesInmuebles,
@@ -7,6 +7,7 @@ import {
 import ApprovalModal from "../../components/AprovalModal";
 import ErrorModal from "../../components/ErrorModal";
 import { useApi } from "../../hooks/useApi";
+import RejectModal from "../../components/RejectModal"; // ✅ Nuevo modal sin AntD
 
 const SolicitudInmueble = () => {
   const {
@@ -24,35 +25,30 @@ const SolicitudInmueble = () => {
   const [approvalModal, setApprovalModal] = useState({ open: false, message: "" });
   const [errorModal, setErrorModal] = useState({ open: false, message: "" });
 
+  // 🔹 Modal de rechazo
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [selectedInmueble, setSelectedInmueble] = useState(null);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+
   // =====================================================
   // 🔹 Cargar solicitudes según filtro
   // =====================================================
   useEffect(() => {
     const load = async () => {
       try {
-        console.log("🚀 Llamando fetchSolicitudes con filtro:", filtro);
         const res = await fetchSolicitudes(filtro);
-        console.log("📦 Respuesta completa desde fetchSolicitudes:", res);
-
-        // Acepta múltiples estructuras del backend
         const inmuebles =
-          Array.isArray(res?.data) ? res.data :
-          Array.isArray(res?.raw?.values?.inmuebles) ? res.raw.values.inmuebles :
-          Array.isArray(res?.values?.inmuebles) ? res.values.inmuebles :
-          Array.isArray(res?.values) ? res.values :
-          Array.isArray(res) ? res :
-          [];
+          Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.raw?.values?.inmuebles)
+            ? res.raw.values.inmuebles
+            : Array.isArray(res?.values?.inmuebles)
+            ? res.values.inmuebles
+            : [];
 
-        console.log("✅ Inmuebles procesados:", inmuebles);
-
-        if (Array.isArray(inmuebles)) {
-          setSolicitudes(inmuebles);
-        } else {
-          console.warn("⚠️ Respuesta inesperada:", res);
-          throw new Error("Estructura inesperada en la respuesta del servidor");
-        }
+        setSolicitudes(inmuebles);
       } catch (err) {
-        console.error("❌ Error exacto capturado:", err);
+        console.error("❌ Error cargando solicitudes:", err);
         setErrorModal({
           open: true,
           message: "Error al cargar solicitudes de inmuebles.",
@@ -65,9 +61,9 @@ const SolicitudInmueble = () => {
   // =====================================================
   // 🔹 Cambiar estado (Aprobar / Rechazar)
   // =====================================================
-  const handleCambiarEstado = async (id, nuevoEstado) => {
+  const handleCambiarEstado = async (id, nuevoEstado, motivo = "") => {
     try {
-      const res = await ejecutarCambioEstado(id, nuevoEstado);
+      const res = await ejecutarCambioEstado(id, nuevoEstado, motivo);
       const ok =
         res?.data?.status === 1 || res?.status === 200 || res?.status === 204;
       if (ok) {
@@ -88,6 +84,53 @@ const SolicitudInmueble = () => {
       setErrorModal({
         open: true,
         message: "Error al cambiar el estado: " + (err?.message || "desconocido"),
+      });
+    }
+  };
+
+  // =====================================================
+  // 🔹 Modal de rechazo con motivo
+  // =====================================================
+  const abrirModalRechazo = (inmueble) => {
+    setSelectedInmueble(inmueble);
+    setMotivoRechazo("");
+    setIsRejectModalOpen(true);
+  };
+
+  const confirmarRechazo = async () => {
+    if (!motivoRechazo.trim()) {
+      setErrorModal({ open: true, message: "Debes ingresar un motivo de rechazo." });
+      return;
+    }
+
+    try {
+      const res = await ejecutarCambioEstado(
+        selectedInmueble.id,
+        "rechazado",
+        motivoRechazo
+      );
+      const ok =
+        res?.data?.status === 1 || res?.status === 200 || res?.status === 204;
+
+      if (ok) {
+        setSolicitudes((prev) =>
+          prev.filter((s) => s.id !== selectedInmueble.id)
+        );
+        setApprovalModal({
+          open: true,
+          message: `Inmueble rechazado correctamente.`,
+        });
+        setIsRejectModalOpen(false);
+      } else {
+        setErrorModal({
+          open: true,
+          message: res?.data?.message || "Error al rechazar inmueble.",
+        });
+      }
+    } catch (err) {
+      setErrorModal({
+        open: true,
+        message: "Error al rechazar inmueble: " + (err?.message || "desconocido"),
       });
     }
   };
@@ -165,7 +208,7 @@ const SolicitudInmueble = () => {
               key={s.id}
               className="bg-white rounded-2xl shadow-md border border-gray-200 p-5 hover:shadow-lg transition-all duration-200"
             >
-              {/* 🔹 Encabezado */}
+              {/* Encabezado */}
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-800">
                   {s.titulo || "Inmueble sin título"}
@@ -183,7 +226,7 @@ const SolicitudInmueble = () => {
                 </span>
               </div>
 
-              {/* 🔹 Datos */}
+              {/* Datos */}
               <p className="text-sm text-gray-600">
                 <strong>Tipo:</strong> {s.tipo_operacion}
               </p>
@@ -200,7 +243,7 @@ const SolicitudInmueble = () => {
                 <strong>Precio:</strong> {s.precio} Bs
               </p>
 
-              {/* 🔹 Mostrar fotos (si existen) */}
+              {/* Fotos */}
               {s.fotos && s.fotos.length > 0 && (
                 <div className="mt-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -216,7 +259,7 @@ const SolicitudInmueble = () => {
                 </div>
               )}
 
-              {/* 🔹 Botones */}
+              {/* Botones */}
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => handleCambiarEstado(s.id, "aprobado")}
@@ -230,7 +273,7 @@ const SolicitudInmueble = () => {
                   Aprobar
                 </button>
                 <button
-                  onClick={() => handleCambiarEstado(s.id, "rechazado")}
+                  onClick={() => abrirModalRechazo(s)}
                   disabled={s.estado === "rechazado" || loadingCambio}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all ${
                     s.estado === "rechazado"
@@ -246,7 +289,17 @@ const SolicitudInmueble = () => {
         </div>
       )}
 
-      {/* 🔹 Modales */}
+      {/* 🔹 Modal de motivo de rechazo */}
+      <RejectModal
+        open={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={confirmarRechazo}
+        titulo={selectedInmueble?.titulo}
+        motivo={motivoRechazo}
+        setMotivo={setMotivoRechazo}
+      />
+
+      {/* 🔹 Modales de éxito / error */}
       <ApprovalModal
         isOpen={approvalModal.open}
         onClose={() => setApprovalModal({ open: false, message: "" })}

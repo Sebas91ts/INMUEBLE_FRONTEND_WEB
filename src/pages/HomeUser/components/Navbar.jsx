@@ -10,8 +10,10 @@ import {
   Info,
   LogOut,
   Users,
-  Bell, TrendingUp,
-  Calendar
+  Bell,
+  TrendingUp,
+  Calendar,
+  FileText
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
@@ -89,34 +91,43 @@ export default function Navbar() {
       protegido: true
     },
     {
-  to: '/home/mis-inmuebles/aprobados',
-  label: 'Mis Inmuebles',
-  icon: Building2,
-  componente: 'Inmueble',
-  protegido: true
-  },
+      to: '/home/mis-inmuebles/aprobados',
+      label: 'Mis Inmuebles',
+      icon: Building2,
+      componente: 'Inmueble',
+      protegido: true
+    },
 
     {
-      to: '/home/desempeno',          // ← tu ruta (si es top-level)
+      to: '/home/desempeno', // ← tu ruta (si es top-level)
       label: 'Desempeño',
       icon: TrendingUp,
-      componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
+      componente: 'inmueble' // o 'desempeno' si creas un componente con ese nombre
       //protegido: true,
       //onlyAgente: true           // (opcional) muéstralo solo a agentes
     },
     {
-      to: '/home/inmuebles/crear',          // ← tu ruta (si es top-level)
+      to: '/home/inmuebles/crear', // ← tu ruta (si es top-level)
       label: 'Crear Inmueble',
-      icon: TrendingUp,
-      componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
-      protegido: true,
-      onlyAgente: true           // (opcional) muéstralo solo a agentes
+      icon: FileText,
+      componente: 'inmueble' // o 'desempeno' si creas un componente con ese nombre
+      //protegido: true,
+      //onlyAgente: true           // (opcional) muéstralo solo a agentes
     },
-    { to: '/home/citas', 
-      label: 'Agenda', 
-      icon: Calendar, 
-      componente: 'cita', 
-      protegido: true }
+    {
+      to: '/home/citas',
+      label: 'Agenda',
+      icon: Calendar,
+      componente: 'cita',
+      protegido: true
+    },
+    {
+      to: '/home/contratos',
+      label: 'contrato Servicios',
+      icon: FileText,
+      componente: 'contrato',
+      protegido: true
+    }
   ]
 
   if (loading)
@@ -147,30 +158,32 @@ export default function Navbar() {
   // })
 
   // Filtrar links según privilegios
-const linksFiltrados = navLinks.filter((link) => {
-  if (!link.protegido) return true;
-  if (!user) return false;
+  const linksFiltrados = navLinks.filter((link) => {
+    if (!link.protegido) return true
+    if (!user) return false
 
-  // 🧩 Solo mostrar "Mis Inmuebles" si el usuario es agente
-  if (link.label === "Mis Inmuebles" && user.grupo_nombre?.toLowerCase() !== "agente") {
-    return false;
-  }
+    // 🧩 Solo mostrar "Mis Inmuebles" si el usuario es agente
+    if (
+      link.label === 'Mis Inmuebles' &&
+      user.grupo_nombre?.toLowerCase() !== 'agente'
+    ) {
+      return false
+    }
 
-  // 🧩 El administrador ve todo
-  if (user.grupo_nombre?.toLowerCase() === "administrador") return true;
+    // 🧩 El administrador ve todo
+    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
 
-  // 🧩 Verificar privilegios normales
-  return privilegios.some(
-    (p) =>
-      p.componente.toLowerCase() === link.componente.toLowerCase() &&
-      (p.puede_crear ||
-        p.puede_actualizar ||
-        p.puede_eliminar ||
-        p.puede_leer ||
-        p.puede_activar)
-  );
-});
-
+    // 🧩 Verificar privilegios normales
+    return privilegios.some(
+      (p) =>
+        p.componente.toLowerCase() === link.componente.toLowerCase() &&
+        (p.puede_crear ||
+          p.puede_actualizar ||
+          p.puede_eliminar ||
+          p.puede_leer ||
+          p.puede_activar)
+    )
+  })
 
   const handleLogout = async () => {
     await logout()

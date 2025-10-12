@@ -19,8 +19,8 @@ export const publicarInmuebleHistorial = async (id) => {
 
 // 🔹 Solicitar corrección (editar y reenviar)
 export const solicitarCorreccionInmueble = async (id, payload) => {
-  const { data } = await instancia.post(
-    `inmueble/solicitar_cambio_inmueble/${id}`,
+  const { data } = await instancia.put(
+    `inmueble/solicitar_correccion_inmueble/${id}/`,
     payload
   );
   return data;

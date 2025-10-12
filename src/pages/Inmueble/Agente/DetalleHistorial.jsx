@@ -28,8 +28,15 @@ export default function DetalleHistorial() {
         setForm({
           titulo: inmuebleData?.titulo || "",
           descripcion: inmuebleData?.descripcion || "",
+          ciudad: inmuebleData?.ciudad || "",
           zona: inmuebleData?.zona || "",
           precio: inmuebleData?.precio || 0,
+          latitud: inmuebleData?.latitud || "",
+          longitud: inmuebleData?.longitud || "",
+          superficie: inmuebleData?.superficie || "",
+          dormitorios: inmuebleData?.dormitorios || "",
+          banos: inmuebleData?.banos || "",
+          tipo_operacion: inmuebleData?.tipo_operacion || "",
         });
       } catch (e) {
         console.error("Error cargando inmueble:", e);
@@ -97,6 +104,7 @@ export default function DetalleHistorial() {
     longitud,
     precio,
     tipo_operacion,
+    motivo_rechazo,
   } = inmueble;
 
   return (
@@ -152,7 +160,18 @@ export default function DetalleHistorial() {
             <strong>Zona:</strong> {zona || "—"}
           </p>
           <p>
-            <strong>Estado:</strong> {estado || "—"}
+            <strong>Estado:</strong>{" "}
+            <span
+              className={`${
+                estado === "rechazado"
+                  ? "text-red-700"
+                  : estado === "aprobado"
+                  ? "text-green-700"
+                  : "text-yellow-700"
+              } font-semibold`}
+            >
+              {estado || "—"}
+            </span>
           </p>
           <p>
             <strong>Precio:</strong> Bs {precio || 0}
@@ -168,6 +187,16 @@ export default function DetalleHistorial() {
         <h2 className="font-semibold text-lg mb-2">Descripción</h2>
         <p className="text-gray-700">{descripcion || "Sin descripción"}</p>
       </div>
+
+      {/* === Motivo de rechazo === */}
+      {estado === "rechazado" && motivo_rechazo && (
+        <div className="border-l-4 border-red-500 bg-red-50 p-4 rounded-lg">
+          <h3 className="font-semibold text-red-700 mb-1">
+            Motivo del rechazo
+          </h3>
+          <p className="text-red-700 text-sm">{motivo_rechazo}</p>
+        </div>
+      )}
 
       {/* === Mapa === */}
       {latitud && longitud && (
@@ -185,7 +214,7 @@ export default function DetalleHistorial() {
         </div>
       )}
 
-      {/* === Modo edición para reenviar === */}
+      {/* === Modo edición === */}
       {estado === "rechazado" && (
         <div className="border rounded-lg p-4 bg-white shadow-sm">
           {!modoEdicion ? (
@@ -201,49 +230,41 @@ export default function DetalleHistorial() {
                 Corregir información
               </h2>
 
-              <label className="block">
-                <span className="text-sm">Título</span>
-                <input
-                  type="text"
-                  name="titulo"
-                  value={form.titulo}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm">Descripción</span>
-                <textarea
-                  name="descripcion"
-                  rows="4"
-                  value={form.descripcion}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm">Zona</span>
-                <input
-                  type="text"
-                  name="zona"
-                  value={form.zona}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm">Precio (Bs)</span>
-                <input
-                  type="number"
-                  name="precio"
-                  value={form.precio}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </label>
+              {/* === Formulario completo === */}
+              {[
+                { label: "Título", name: "titulo" },
+                { label: "Descripción", name: "descripcion", type: "textarea" },
+                { label: "Ciudad", name: "ciudad" },
+                { label: "Zona", name: "zona" },
+                { label: "Precio (Bs)", name: "precio", type: "number" },
+                { label: "Tipo de operación", name: "tipo_operacion" },
+                { label: "Superficie (m²)", name: "superficie", type: "number" },
+                { label: "Dormitorios", name: "dormitorios", type: "number" },
+                { label: "Baños", name: "banos", type: "number" },
+                { label: "Latitud", name: "latitud" },
+                { label: "Longitud", name: "longitud" },
+              ].map(({ label, name, type }) => (
+                <label key={name} className="block">
+                  <span className="text-sm">{label}</span>
+                  {type === "textarea" ? (
+                    <textarea
+                      name={name}
+                      rows="3"
+                      value={form[name] || ""}
+                      onChange={handleChange}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  ) : (
+                    <input
+                      type={type || "text"}
+                      name={name}
+                      value={form[name] || ""}
+                      onChange={handleChange}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  )}
+                </label>
+              ))}
 
               <div className="flex gap-3">
                 <button
@@ -269,5 +290,6 @@ export default function DetalleHistorial() {
     </div>
   );
 }
+
 
 

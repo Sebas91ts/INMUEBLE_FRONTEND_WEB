@@ -49,7 +49,14 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           >
-            <Route path="crear" element={<CreateInmueble />} />
+            <Route
+              path="crear"
+              element={
+                <PrivilegedRoute componente="Inmueble">
+                  <CreateInmueble />
+                </PrivilegedRoute>
+              }
+            />
           </Route>
           
 
@@ -97,6 +104,7 @@ export default function UserRoutes() {
             }
              
           />
+          
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />

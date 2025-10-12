@@ -109,8 +109,8 @@ export default function Navbar() {
       label: 'Crear Inmueble',
       icon: TrendingUp,
       componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
-      //protegido: true,
-      //onlyAgente: true           // (opcional) muéstralo solo a agentes
+      protegido: true,
+      onlyAgente: true           // (opcional) muéstralo solo a agentes
     },
     { to: '/home/citas', 
       label: 'Agenda', 

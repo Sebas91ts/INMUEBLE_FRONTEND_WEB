@@ -260,7 +260,7 @@ export default function MisInmuebles() {
     }
   };
 
-  const goCrear = () => navigate("/home/mis-inmuebles/crear");
+  const goCrear = () => navigate("/home/inmuebles/crear");
 
   const currentTab = TABS.find(t => t.key === tab);
 

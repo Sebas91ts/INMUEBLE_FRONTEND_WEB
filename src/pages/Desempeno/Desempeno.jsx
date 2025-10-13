@@ -1,7 +1,11 @@
+// src/pages/Desempeno/Desempeno.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
-import { Download, Printer, RefreshCw, AlertCircle } from "lucide-react";
-import { getDesempenoAgente } from "../../api/desempeno/desempeno";
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, RadialBarChart, RadialBar, ResponsiveContainer
+} from "recharts";
+import { Download, Printer, RefreshCw, AlertCircle, Sparkles, Copy } from "lucide-react";
+import { getDesempenoAgente, postReporteIAGemini } from "../../api/desempeno/desempeno"; // <-- ajusta la ruta si difiere
 
 /**
  * Util: convierte el payload de la API a un CSV descargable.
@@ -57,14 +61,15 @@ function printElement(node) {
   if (!node) return;
   const w = window.open("", "PRINT", "height=800,width=1000");
   if (!w) return;
-  // Tailwind no se copia al nuevo documento, así que añadimos un estilo mínimo inline para legibilidad.
   w.document.write(`<!doctype html><html><head><title>Reporte de desempeño</title>
     <style>
-      body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,\"Apple Color Emoji\",\"Segoe UI Emoji\";padding:24px;color:#0c0a09}
+      body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";padding:24px;color:#0c0a09}
       h1,h2{margin:0 0 12px}
       .grid{display:grid;gap:16px}
       .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
       .card{border:1px solid #e7e5e4;border-radius:14px;padding:16px}
+      pre{white-space:pre-wrap; word-break:break-word}
+      .muted{color:#57534e}
     </style>
   </head><body>`);
   w.document.write(node.innerHTML);
@@ -75,16 +80,21 @@ function printElement(node) {
   w.close();
 }
 
-const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#a78bfa", "#ef4444", "#14b8a6"]; // paleta neutra bonita
+const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#a78bfa", "#ef4444", "#14b8a6"];
 
 export default function Desempeno() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaError, setIaError] = useState(null);
+  const [iaText, setIaText] = useState("");
+
   const reportRef = useRef(null);
 
   const auth = useMemo(() => JSON.parse(localStorage.getItem("authData") || "{}"), []);
-  const agenteId = auth?.user?.id; // si tu user guarda otro campo, ajústalo
+  const agenteId = auth?.user?.id; // ajusta si tu auth guarda otro campo
 
   const fetchData = async () => {
     if (!agenteId) return;
@@ -98,6 +108,75 @@ export default function Desempeno() {
       setErr(e?.response?.data?.message || "No se pudo cargar el reporte");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // arma el payload para IA a partir del JSON cargado
+  const buildIAPayload = (report) => {
+    const tot = report?.totales || {};
+    const est = report?.estados || {};
+    const kpis = report?.kpis || {};
+
+    // Reducimos estados -> counts
+    const estadoCounts = Object.entries(est).reduce((acc, [k, v]) => {
+      acc[k] = v?.count ?? 0;
+      return acc;
+    }, {});
+
+    return {
+      kpis: {
+        publicaciones: Number(tot.publicaciones ?? 0),
+        publicaciones_con_anuncio: Number(tot.publicaciones_con_anuncio ?? 0),
+        anuncios: Number(tot.anuncios ?? 0),
+        ...estadoCounts,
+        desempeno: Number(kpis.desempeno ?? 0),
+        tasa_publicacion: Number(kpis.tasa_publicacion ?? 0)
+      },
+      notas: `Agente ${report?.agente_id ?? ""} • Datos auto-generados desde el dashboard.`
+    };
+  };
+
+  const pedirReporteIA = async () => {
+    if (!data) return;
+    setIaLoading(true);
+    setIaError(null);
+    setIaText("");
+    try {
+      const payload = buildIAPayload(data);
+      const res = await postReporteIAGemini(payload);
+
+      // Acepta varias formas de respuesta:
+      const texto =
+        res?.data?.reporte ||
+        res?.data?.reporte_ia ||
+        res?.data?.values?.reporte ||
+        res?.data?.values?.reporte_ia ||
+        res?.data?.text ||
+        "";
+
+      if (!texto) {
+        setIaError("La API no devolvió texto. Revisa el backend.");
+      } else {
+        setIaText(String(texto));
+      }
+    } catch (e) {
+      console.error(e);
+      const apiMsg =
+        e?.response?.data?.detail ||
+        e?.response?.data?.message ||
+        e?.message ||
+        "Error al solicitar el reporte de IA";
+      setIaError(apiMsg);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const copyIA = async () => {
+    try {
+      await navigator.clipboard.writeText(iaText || "");
+    } catch (e) {
+      console.error("No se pudo copiar", e);
     }
   };
 
@@ -125,23 +204,42 @@ export default function Desempeno() {
           <h1 className="text-2xl font-semibold text-stone-900">Desempeño del agente #{agenteId}</h1>
           <p className="text-stone-600 text-sm">Resumen de publicaciones, estados y KPIs.</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => fetchData()} className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => fetchData()}
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50"
+          >
             <RefreshCw className="w-4 h-4" /> Actualizar
           </button>
-          <button disabled={!data} onClick={() => exportCSV(data)} className="inline-flex items-center gap-2 rounded-xl bg-stone-900 text-white px-3 py-2 text-sm font-medium hover:bg-stone-800 disabled:opacity-50">
+          <button
+            disabled={!data}
+            onClick={() => exportCSV(data)}
+            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 text-white px-3 py-2 text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
+          >
             <Download className="w-4 h-4" /> CSV
           </button>
-          <button disabled={!data} onClick={() => printElement(reportRef.current)} className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50 disabled:opacity-50">
+          <button
+            disabled={!data}
+            onClick={() => printElement(reportRef.current)}
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
+          >
             <Printer className="w-4 h-4" /> Imprimir
+          </button>
+          {/* Botón IA */}
+          <button
+            disabled={!data || iaLoading}
+            onClick={pedirReporteIA}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white px-3 py-2 text-sm font-medium hover:bg-indigo-500 disabled:opacity-50"
+            title="Generar insights con IA (Gemini)"
+          >
+            <Sparkles className="w-4 h-4" />
+            {iaLoading ? "Generando…" : "Reporte IA"}
           </button>
         </div>
       </div>
 
       {/* Estados de carga / error */}
-      {loading && (
-        <div className="text-stone-600">Cargando…</div>
-      )}
+      {loading && <div className="text-stone-600">Cargando…</div>}
       {err && (
         <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-xl p-4">
           <AlertCircle className="w-5 h-5" />
@@ -166,7 +264,13 @@ export default function Desempeno() {
               <h2 className="font-semibold text-stone-900 mb-2">Índice de desempeño</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart innerRadius="60%" outerRadius="100%" data={[{ name: "desempeño", value: data.kpis?.desempeno ?? 0 }]} startAngle={90} endAngle={-270}>
+                  <RadialBarChart
+                    innerRadius="60%"
+                    outerRadius="100%"
+                    data={[{ name: "desempeño", value: data.kpis?.desempeno ?? 0 }]}
+                    startAngle={90}
+                    endAngle={-270}
+                  >
                     <RadialBar minAngle={15} background clockWise dataKey="value" fill="#0ea5e9" cornerRadius={10} />
                     <Tooltip formatter={(v) => `${v}%`} />
                   </RadialBarChart>
@@ -203,12 +307,14 @@ export default function Desempeno() {
               <h2 className="font-semibold text-stone-900 mb-2">Totales</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[{
-                    name: "Totales",
-                    publicaciones: data.totales?.publicaciones ?? 0,
-                    con_anuncio: data.totales?.publicaciones_con_anuncio ?? 0,
-                    anuncios: data.totales?.anuncios ?? 0
-                  }]}> 
+                  <BarChart
+                    data={[{
+                      name: "Totales",
+                      publicaciones: data.totales?.publicaciones ?? 0,
+                      con_anuncio: data.totales?.publicaciones_con_anuncio ?? 0,
+                      anuncios: data.totales?.anuncios ?? 0
+                    }]}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis allowDecimals={false} />
@@ -220,6 +326,41 @@ export default function Desempeno() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          </div>
+
+          {/* Tarjeta: Reporte IA */}
+          <div className="border rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold text-stone-900">Reporte IA</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={pedirReporteIA}
+                  disabled={iaLoading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 px-3 py-2 text-sm font-medium hover:bg-indigo-50 disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {iaLoading ? "Generando…" : "Volver a generar"}
+                </button>
+                <button
+                  onClick={copyIA}
+                  disabled={!iaText}
+                  className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
+                >
+                  <Copy className="w-4 h-4" /> Copiar
+                </button>
+              </div>
+            </div>
+
+            {iaError && (
+              <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mb-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>{iaError}</span>
+              </div>
+            )}
+
+            <div className="bg-stone-50 rounded-xl p-3 text-sm whitespace-pre-wrap">
+              {iaText ? iaText : <span className="text-stone-500">Aún no hay reporte. Haz clic en “Reporte IA”.</span>}
             </div>
           </div>
 
@@ -248,7 +389,7 @@ export default function Desempeno() {
             </table>
           </div>
 
-          {/* JSON crudo opcional para depuración */}
+          {/* JSON crudo opcional */}
           <details className="border rounded-2xl p-4 text-sm text-stone-700">
             <summary className="cursor-pointer font-medium">Ver JSON completo</summary>
             <pre className="mt-3 bg-stone-50 p-3 rounded-xl overflow-auto">{JSON.stringify(data, null, 2)}</pre>

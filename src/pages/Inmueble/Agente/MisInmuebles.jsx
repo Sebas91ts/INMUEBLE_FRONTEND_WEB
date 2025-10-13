@@ -89,7 +89,7 @@ export default function MisInmuebles() {
     return m[k] ?? 0;
   };
 
-  const goCrear = () => navigate("/home/mis-inmuebles/crear");
+  const goCrear = () => navigate("/home/inmuebles/crear");
 
   return (
     <div className="p-6 relative">

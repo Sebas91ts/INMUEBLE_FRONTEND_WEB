@@ -187,7 +187,7 @@ export default function LoginForm() {
               
               {/* Campos comunes (Login y Registro) */}
               <InputField icon={User} name="username" placeholder="Nombre de usuario" value={formData.username} onChange={handleInputChange} error={errors.username} />
-              <InputField icon={Lock} name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={handleInputChange} error={errors.password} suffix={
+              <InputField icon={Lock} name="password" type={showPassword ? 'text' : 'password'} placeholder="Contraseña" value={formData.password} onChange={handleInputChange} error={errors.password} suffix={
                 <button type='button' onClick={() => setShowPassword(!showPassword)} className="text-stone-600 hover:text-stone-900">
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>

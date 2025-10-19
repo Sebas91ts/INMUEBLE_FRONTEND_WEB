@@ -100,17 +100,10 @@ export default function Navbar() {
       label: 'Desempeño',
       icon: TrendingUp,
       componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
-      //protegido: true,
-      //onlyAgente: true           // (opcional) muéstralo solo a agentes
+      protegido: true,
+      onlyAgente: true           // (opcional) muéstralo solo a agentes
     },
-    {
-      to: '/home/inmuebles/crear',          // ← tu ruta (si es top-level)
-      label: 'Crear Inmueble',
-      icon: TrendingUp,
-      componente: 'inmueble',    // o 'desempeno' si creas un componente con ese nombre
-      //protegido: true,
-      //onlyAgente: true           // (opcional) muéstralo solo a agentes
-    },
+    
   ]
 
   if (loading)
@@ -153,6 +146,10 @@ const linksFiltrados = navLinks.filter((link) => {
   // 🧩 El administrador ve todo
   if (user.grupo_nombre?.toLowerCase() === "administrador") return true;
 
+  //  Agente
+  if (link.onlyAgente && user.grupo_nombre?.toLowerCase() !== 'agente') {
+    return false;
+  }
   // 🧩 Verificar privilegios normales
   return privilegios.some(
     (p) =>

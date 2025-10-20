@@ -2,8 +2,8 @@
 import { Route, Routes, Navigate } from 'react-router-dom'
 import ProtectedRoute from '../components/ProtectedRoutes'
 import PrivilegedRoute from '../components/PrivilegedRoute'
-
-import Home from "../pages/HomeUser/ContentHomeUser";
+import AnunciosAdmin from '../pages/anuncios/AnunciosAdmin'
+import AnuncioAdminDetail from '../pages/anuncios/components/AnuncioAdminDetail'
 import Dashboard from '../pages/Dashboard/Dashboard'
 import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
 import Grupos from '../pages/Permisos/Grupos'
@@ -24,21 +24,11 @@ import TiposInmueble from '../pages/Inmuebles/Tipos'
 export default function AdminRoutes() {
   return (
     <Routes>
-      {/* Home público/página de inicio */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute requiredRole="Administrador">
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      
       {/* Dashboard administrativo */}
       <Route
         path='/dashboard'
         element={
-          <ProtectedRoute requiredRole="Administrador">
+          <ProtectedRoute requiredRole='Administrador'>
             <Dashboard />
           </ProtectedRoute>
         }
@@ -129,6 +119,23 @@ export default function AdminRoutes() {
         />
         <Route path='usuarios' element={<UsuariosDashboard />} />
         <Route path='editar-perfil' element={<EditarPerfil />} />
+        {/* Anuncios */}
+        <Route
+          path='anuncios'
+          element={
+            <PrivilegedRoute componente='anuncio'>
+              <AnunciosAdmin />
+            </PrivilegedRoute>
+          }
+        />
+        <Route
+          path='anuncios/detalle/:id'
+          element={
+            <PrivilegedRoute componente='anuncio'>
+              <AnuncioAdminDetail />
+            </PrivilegedRoute>
+          }
+        />
       </Route>
 
       <Route path='*' element={<Navigate to='/dashboard' />} />

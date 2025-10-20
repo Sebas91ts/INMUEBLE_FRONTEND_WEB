@@ -3,6 +3,7 @@ import { Route, Routes, Navigate } from 'react-router-dom'
 import ProtectedRoute from '../components/ProtectedRoutes'
 import PrivilegedRoute from '../components/PrivilegedRoute'
 
+import Home from "../pages/HomeUser/ContentHomeUser";
 import Dashboard from '../pages/Dashboard/Dashboard'
 import EstadisticasDashboard from '../pages/Dashboard/components/EstadisticasDashboard'
 import Grupos from '../pages/Permisos/Grupos'
@@ -23,10 +24,21 @@ import TiposInmueble from '../pages/Inmuebles/Tipos'
 export default function AdminRoutes() {
   return (
     <Routes>
+      {/* Home público/página de inicio */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute requiredRole="Administrador">
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Dashboard administrativo */}
       <Route
         path='/dashboard'
         element={
-          <ProtectedRoute requiredRole='admin'>
+          <ProtectedRoute requiredRole="Administrador">
             <Dashboard />
           </ProtectedRoute>
         }

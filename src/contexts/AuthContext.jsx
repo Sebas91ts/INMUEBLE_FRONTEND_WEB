@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import React, { createContext, useReducer, useEffect } from 'react'
 import { login as apiLogin, register as apiRegister } from '../api/auth/login'
 import { getPrivilegios } from '../api/auth/privilegios'

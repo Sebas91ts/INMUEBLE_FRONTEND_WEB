@@ -15,6 +15,7 @@ import {
   Calendar,
   FileText,
   MessageCircle,
+  CalendarCheck,
   User
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'

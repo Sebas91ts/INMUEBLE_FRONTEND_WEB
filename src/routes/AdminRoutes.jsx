@@ -21,6 +21,7 @@ import EnAnticretico from '../pages/Inmuebles/EnAnticretico'
 import InmuebleDetail from '../pages/Inmuebles/InmuebleDetail'
 import Bitacora from '../pages/Bitacora/Bitacora'
 import TiposInmueble from '../pages/Inmuebles/Tipos'
+import DashboardComisiones from '../pages/Comisiones/DashBoardComisiones'
 export default function AdminRoutes() {
   return (
     <Routes>
@@ -136,6 +137,7 @@ export default function AdminRoutes() {
             </PrivilegedRoute>
           }
         />
+        <Route path='comisiones' element={<DashboardComisiones />} />
       </Route>
 
       <Route path='*' element={<Navigate to='/dashboard' />} />

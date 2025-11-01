@@ -9,6 +9,8 @@ export const getInmuebles = (tipo) => {
   const url = tipo ? `inmueble/listar_inmuebles?tipo=${encodeURIComponent(tipo)}` : "inmueble/listar_inmuebles";
   return instancia.get(url);
 };
+//listar todos los inmuebles aprobados no publicados
+export const getInmueblesNoPublicados = () => instancia.get("inmueble/aprobados-no-publicados");
 
 // Obtener inmueble por ID
 export const getInmuebleById = (id) => instancia.get(`inmueble/inmueble/${id}`);

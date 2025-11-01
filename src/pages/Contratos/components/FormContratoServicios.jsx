@@ -1,27 +1,39 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { descargarContratoServicios } from '../../../api/usuarios/usuarios'
+import { getInmueblesNoPublicados } from '../../../api/inmueble'
+import { getAgentes } from '../../../api/usuarios/usuarios'
+import { useAuth } from '../../../hooks/useAuth'
+import { PrinterIcon } from 'lucide-react'
 
 const FormContratoServicios = ({ onBack }) => {
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
+    // Campos básicos
     ciudad: '',
-    fecha: '',
+    fecha: new Date().toISOString().split('T')[0],
 
+    // Información de la empresa
     empresa_nombre: '',
     empresa_representante: '',
     empresa_ci: '',
     empresa_domicilio: '',
 
+    // Información del cliente
     cliente_nombre: '',
     cliente_ci: '',
     cliente_estado_civil: '',
     cliente_profesion: '',
     cliente_domicilio: '',
 
-    agente_nombre: '',
-    agente_ci: '',
+    // Información del agente (se llena automáticamente o manualmente)
+    agente_id: user?.grupo_nombre === 'agente' ? user.id : '',
+    agente_nombre: user?.grupo_nombre === 'agente' ? user.nombre : '',
+    agente_ci: user?.grupo_nombre === 'agente' ? user.ci : '',
     agente_estado_civil: '',
     agente_domicilio: '',
 
+    // Información del inmueble (seleccionable)
+    inmueble_id: '',
     inmueble_direccion: '',
     inmueble_superficie: '',
     inmueble_distrito: '',
@@ -31,9 +43,11 @@ const FormContratoServicios = ({ onBack }) => {
     inmueble_matricula: '',
     precio_inmueble: '',
 
+    // Términos del contrato
     comision: '',
     vigencia_dias: '',
 
+    // Información de contacto
     direccion_oficina: '',
     telefono_oficina: '',
     email_oficina: ''
@@ -41,16 +55,105 @@ const FormContratoServicios = ({ onBack }) => {
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [inmuebles, setInmuebles] = useState([])
+  const [agentes, setAgentes] = useState([])
+  const [loadingInmuebles, setLoadingInmuebles] = useState(false)
+  const [loadingAgentes, setLoadingAgentes] = useState(false)
+
+  // Cargar inmuebles no publicados
+  useEffect(() => {
+    const cargarInmuebles = async () => {
+      setLoadingInmuebles(true)
+      try {
+        const response = await getInmueblesNoPublicados()
+        setInmuebles(response.data.values?.inmuebles || [])
+      } catch (error) {
+        console.error('Error al cargar inmuebles:', error)
+        setMessage('❌ Error al cargar la lista de inmuebles')
+      } finally {
+        setLoadingInmuebles(false)
+      }
+    }
+
+    cargarInmuebles()
+  }, [])
+
+  // Cargar agentes si el usuario no es agente
+  useEffect(() => {
+    if (user?.grupo_nombre !== 'agente') {
+      const cargarAgentes = async () => {
+        setLoadingAgentes(true)
+        try {
+          const response = await getAgentes()
+          setAgentes(response.data.values || [])
+        } catch (error) {
+          console.error('Error al cargar agentes:', error)
+          setMessage('❌ Error al cargar la lista de agentes')
+        } finally {
+          setLoadingAgentes(false)
+        }
+      }
+
+      cargarAgentes()
+    }
+  }, [user])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Manejar selección de inmueble
+  const handleInmuebleChange = (inmuebleId) => {
+    const inmuebleSeleccionado = inmuebles.find(
+      (i) => i.id === parseInt(inmuebleId)
+    )
+    if (inmuebleSeleccionado) {
+      setFormData((prev) => ({
+        ...prev,
+        inmueble_id: inmuebleSeleccionado.id,
+        inmueble_direccion: inmuebleSeleccionado.direccion || '',
+        inmueble_superficie: inmuebleSeleccionado.superficie || '',
+        inmueble_distrito: inmuebleSeleccionado.distrito || '',
+        inmueble_manzana: inmuebleSeleccionado.manzana || '',
+        inmueble_lote: inmuebleSeleccionado.lote || '',
+        inmueble_zona: inmuebleSeleccionado.zona || '',
+        inmueble_matricula: inmuebleSeleccionado.matricula || '',
+        precio_inmueble: inmuebleSeleccionado.precio || ''
+      }))
+    }
+  }
+
+  // Manejar selección de agente
+  const handleAgenteChange = (agenteId) => {
+    const agenteSeleccionado = agentes.find((a) => a.id === parseInt(agenteId))
+    if (agenteSeleccionado) {
+      setFormData((prev) => ({
+        ...prev,
+        agente_id: agenteSeleccionado.id,
+        agente_nombre: agenteSeleccionado.nombre || '',
+        agente_ci: agenteSeleccionado.ci || ''
+      }))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
+
+    // Validar campos requeridos adicionales
+    if (!formData.agente_id) {
+      setMessage('❌ Debe seleccionar un agente')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.inmueble_id) {
+      setMessage('❌ Debe seleccionar un inmueble')
+      setLoading(false)
+      return
+    }
 
     try {
       const res = await descargarContratoServicios(formData)
@@ -74,7 +177,6 @@ const FormContratoServicios = ({ onBack }) => {
 
       // Intentar leer el mensaje de error del backend
       if (err.response?.data) {
-        // Si es un Blob, convertirlo a texto
         if (err.response.data instanceof Blob) {
           const errorText = await err.response.data.text()
           console.error('Error del backend:', errorText)
@@ -95,7 +197,23 @@ const FormContratoServicios = ({ onBack }) => {
   }
 
   const isFormValid = () => {
-    return Object.values(formData).every((value) => value.trim() !== '')
+    const camposRequeridos = [
+      'ciudad',
+      'fecha',
+      'empresa_nombre',
+      'empresa_representante',
+      'empresa_ci',
+      'cliente_nombre',
+      'cliente_ci',
+      'agente_id',
+      'inmueble_id',
+      'comision',
+      'vigencia_dias'
+    ]
+
+    return camposRequeridos.every(
+      (field) => formData[field] && formData[field].toString().trim() !== ''
+    )
   }
 
   const sections = [
@@ -131,25 +249,172 @@ const FormContratoServicios = ({ onBack }) => {
     },
     {
       title: '👨‍💼 Información del Agente',
-      fields: [
-        { name: 'agente_nombre', label: 'Nombre del Agente', type: 'text' },
-        { name: 'agente_ci', label: 'CI del Agente', type: 'text' },
-        { name: 'agente_estado_civil', label: 'Estado Civil', type: 'text' },
-        { name: 'agente_domicilio', label: 'Domicilio', type: 'text' }
-      ]
+      custom: true,
+      content: (
+        <div className='space-y-4'>
+          {user?.grupo_nombre === 'agente' ? (
+            // Si es agente, mostrar info fija
+            <div className='p-4 bg-blue-50 rounded-lg border border-blue-200'>
+              <h4 className='font-semibold text-blue-800 mb-2'>
+                Agente Asignado (Usted)
+              </h4>
+              <p>
+                <strong>Nombre:</strong> {user.nombre}
+              </p>
+              <p>
+                <strong>CI:</strong> {user.ci || 'No especificado'}
+              </p>
+              <input type='hidden' name='agente_id' value={user.id} />
+              <input type='hidden' name='agente_nombre' value={user.nombre} />
+              <input type='hidden' name='agente_ci' value={user.ci || ''} />
+            </div>
+          ) : (
+            // Si no es agente, mostrar selector
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Seleccionar Agente <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={formData.agente_id}
+                onChange={(e) => handleAgenteChange(e.target.value)}
+                required
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                disabled={loadingAgentes}
+              >
+                <option value=''>
+                  {loadingAgentes
+                    ? 'Cargando agentes...'
+                    : 'Seleccione un agente'}
+                </option>
+                {agentes.map((agente) => (
+                  <option key={agente.id} value={agente.id}>
+                    {agente.nombre} - {agente.ci || 'Sin CI'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Campos adicionales del agente */}
+          <div className='grid gap-4 md:grid-cols-2'>
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Estado Civil del Agente
+              </label>
+              <input
+                name='agente_estado_civil'
+                type='text'
+                value={formData.agente_estado_civil}
+                onChange={handleChange}
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                placeholder='Estado civil del agente'
+              />
+            </div>
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Domicilio del Agente
+              </label>
+              <input
+                name='agente_domicilio'
+                type='text'
+                value={formData.agente_domicilio}
+                onChange={handleChange}
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                placeholder='Domicilio del agente'
+              />
+            </div>
+          </div>
+        </div>
+      )
     },
     {
-      title: '🏠 Información del Inmueble',
-      fields: [
-        { name: 'inmueble_direccion', label: 'Dirección', type: 'text' },
-        { name: 'inmueble_superficie', label: 'Superficie', type: 'text' },
-        { name: 'inmueble_distrito', label: 'Distrito', type: 'text' },
-        { name: 'inmueble_manzana', label: 'Manzana', type: 'text' },
-        { name: 'inmueble_lote', label: 'Lote', type: 'text' },
-        { name: 'inmueble_zona', label: 'Zona', type: 'text' },
-        { name: 'inmueble_matricula', label: 'Matrícula', type: 'text' },
-        { name: 'precio_inmueble', label: 'Precio del Inmueble', type: 'text' }
-      ]
+      title: '🏠 Selección de Inmueble',
+      custom: true,
+      content: (
+        <div className='space-y-4'>
+          <div className='space-y-2'>
+            <label className='block text-sm font-medium text-gray-700'>
+              Seleccionar Inmueble <span className='text-red-500'>*</span>
+            </label>
+            <select
+              value={formData.inmueble_id}
+              onChange={(e) => handleInmuebleChange(e.target.value)}
+              required
+              className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              disabled={loadingInmuebles}
+            >
+              <option value=''>
+                {loadingInmuebles
+                  ? 'Cargando inmuebles...'
+                  : 'Seleccione un inmueble'}
+              </option>
+              {inmuebles.map((inmueble) => (
+                <option key={inmueble.id} value={inmueble.id}>
+                  {inmueble.titulo} - {inmueble.direccion} - {inmueble.ciudad}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Campos del inmueble que se autocompletan */}
+          <div className='grid gap-4 md:grid-cols-2'>
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Dirección del Inmueble
+              </label>
+              <input
+                name='inmueble_direccion'
+                type='text'
+                value={formData.inmueble_direccion}
+                onChange={handleChange}
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                placeholder='Se autocompleta al seleccionar inmueble'
+                readOnly
+              />
+            </div>
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Precio del Inmueble
+              </label>
+              <input
+                name='precio_inmueble'
+                type='text'
+                value={formData.precio_inmueble}
+                onChange={handleChange}
+                className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                placeholder='Se autocompleta al seleccionar inmueble'
+                readOnly
+              />
+            </div>
+          </div>
+
+          {/* Campos adicionales del inmueble */}
+          <div className='grid gap-4 md:grid-cols-2'>
+            {[
+              { name: 'inmueble_superficie', label: 'Superficie' },
+              { name: 'inmueble_distrito', label: 'Distrito' },
+              { name: 'inmueble_manzana', label: 'Manzana' },
+              { name: 'inmueble_lote', label: 'Lote' },
+              { name: 'inmueble_zona', label: 'Zona' },
+              { name: 'inmueble_matricula', label: 'Matrícula' }
+            ].map((field) => (
+              <div key={field.name} className='space-y-2'>
+                <label className='block text-sm font-medium text-gray-700'>
+                  {field.label}
+                </label>
+                <input
+                  name={field.name}
+                  type='text'
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  placeholder={field.label}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )
     },
     {
       title: '💰 Términos del Contrato',
@@ -216,24 +481,30 @@ const FormContratoServicios = ({ onBack }) => {
             <h3 className='text-xl font-semibold text-gray-800 mb-4 flex items-center'>
               {section.title}
             </h3>
-            <div className='grid gap-4 md:grid-cols-2'>
-              {section.fields.map((field) => (
-                <div key={field.name} className='space-y-2'>
-                  <label className='block text-sm font-medium text-gray-700'>
-                    {field.label} <span className='text-red-500'>*</span>
-                  </label>
-                  <input
-                    name={field.name}
-                    type={field.type}
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    required
-                    className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    placeholder={`Ingrese ${field.label.toLowerCase()}`}
-                  />
-                </div>
-              ))}
-            </div>
+
+            {section.custom ? (
+              section.content
+            ) : (
+              <div className='grid gap-4 md:grid-cols-2'>
+                {section.fields.map((field) => (
+                  <div key={field.name} className='space-y-2'>
+                    <label className='block text-sm font-medium text-gray-700'>
+                      {field.label} <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      name={field.name}
+                      type={field.type}
+                      value={formData[field.name]}
+                      onChange={handleChange}
+                      required
+                      className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                      placeholder={`Ingrese ${field.label.toLowerCase()}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {index < sections.length - 1 && (
               <hr className='mt-6 border-gray-200' />
             )}
@@ -251,8 +522,9 @@ const FormContratoServicios = ({ onBack }) => {
           <button
             type='submit'
             disabled={loading || !isFormValid()}
-            className='bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            className='bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
           >
+            <PrinterIcon size={20} />
             {loading ? '⏳ Generando PDF...' : '📄 Generar Contrato PDF'}
           </button>
         </div>
@@ -260,8 +532,8 @@ const FormContratoServicios = ({ onBack }) => {
         {!isFormValid() && (
           <div className='mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg'>
             <p className='text-yellow-700 text-sm text-center'>
-              ⚠️ Complete todos los campos para habilitar la generación del
-              contrato
+              ⚠️ Complete todos los campos obligatorios para habilitar la
+              generación del contrato
             </p>
           </div>
         )}

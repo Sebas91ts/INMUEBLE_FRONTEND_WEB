@@ -9,15 +9,15 @@ import PropiedadDetail from '../pages/HomeUser/PropiedadDetail'
 import AgentesInmobiliaria from '../pages/AgentesList/Agentes'
 import ChatPage from '../pages/Chat/ChatPage'
 import { ChatProvider } from '../contexts/ChatContext'
-import EnAprobado from "../pages/Inmueble/Agente/MisInmuebles";
-import CreateInmuebleAgente from "../pages/Inmueble/Agente/CreateInmueble"; 
+import EnAprobado from '../pages/Inmueble/Agente/MisInmuebles'
+import CreateInmuebleAgente from '../pages/Inmueble/Agente/CreateInmueble'
 import Desempeno from '../pages/Desempeno/Desempeno'
 import CreateInmueble from '../pages/Inmuebles/CreateInmueble'
-import Citas from '../pages/Citas/Citas';
-import HistorialPublicaciones from "../pages/Inmueble/Agente/HistorialPublicaciones";
-import DetalleHistorial from "../pages/Inmueble/Agente/DetalleHistorial";
+import Citas from '../pages/Citas/Citas'
+import HistorialPublicaciones from '../pages/Inmueble/Agente/HistorialPublicaciones'
+import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
-
+import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -108,7 +108,8 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
-          
+
+          <Route path='comisiones' element={<DashboardComisionAgente />} />
 
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />

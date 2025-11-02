@@ -119,9 +119,9 @@ const DashboardComisiones = () => {
     }
   }
 
-  const exportarReporte = () => {
-    console.log('Exportando reporte...')
-  }
+  // const exportarReporte = () => {
+  //   console.log('Exportando reporte...')
+  // }
 
   // Efecto para cargar datos cuando cambian los filtros principales
   useEffect(() => {
@@ -294,7 +294,7 @@ const DashboardComisiones = () => {
               <FileText size={16} />
               <span>Ejecutados</span>
             </button>
-            <button
+            {/* <button
               onClick={mostrarSoloServicios}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                 filtros.incluir_servicios && filtros.tipo_contrato === 'todos'
@@ -304,7 +304,7 @@ const DashboardComisiones = () => {
             >
               <Eye size={16} />
               <span>Servicios</span>
-            </button>
+            </button> */}
             <button
               onClick={mostrarTodos}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
@@ -318,13 +318,13 @@ const DashboardComisiones = () => {
             </button>
           </div>
 
-          <button
+          {/* <button
             onClick={exportarReporte}
             className='flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors'
           >
             <Download size={18} />
             <span>Exportar</span>
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -381,7 +381,7 @@ const DashboardComisiones = () => {
                 setFiltros({ ...filtros, tipo_contrato: e.target.value })
               }
               className='w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              disabled={!filtros.incluir_servicios} // Deshabilitar cuando solo mostramos servicios
+              // disabled={!filtros.incluir_servicios} // Deshabilitar cuando solo mostramos servicios
             >
               {tiposContrato.map((tipo) => (
                 <option key={tipo.value} value={tipo.value}>
@@ -686,7 +686,7 @@ const DashboardComisiones = () => {
                         </span>
                       </div>
                       <div>
-                        <p className='font-semibold'>{contrato.cliente}</p>
+                        <p className='font-semibold'>{contrato.agente}</p>
                         <p className='text-sm text-gray-500'>
                           {contrato.inmueble}
                         </p>
@@ -698,6 +698,15 @@ const DashboardComisiones = () => {
                       </div>
                     </div>
                     <div className='text-right'>
+                      {/* NUEVO: Monto del contrato */}
+                      <p className='text-lg font-bold text-blue-600'>
+                        ${contrato.monto_contrato?.toLocaleString() || '0'}
+                      </p>
+                      <p className='text-sm text-gray-500 mb-1'>
+                        Valor del contrato
+                      </p>
+
+                      {/* Comisión */}
                       <p
                         className={`font-bold ${
                           contrato.tipo_contrato === 'servicios'
@@ -814,6 +823,15 @@ const DashboardComisiones = () => {
                       )}
                     </div>
                     <div className='text-right'>
+                      {/* NUEVO: Monto del contrato */}
+                      <p className='text-lg font-bold text-blue-600'>
+                        ${contrato.monto_contrato?.toLocaleString() || '0'}
+                      </p>
+                      <p className='text-sm text-gray-500 mb-2'>
+                        Valor del contrato
+                      </p>
+
+                      {/* Comisión */}
                       <p
                         className={`font-bold ${
                           contrato.tipo_contrato === 'servicios'

@@ -15,7 +15,7 @@ import {
   Calendar,
   FileText,
   MessageCircle,
-  CalendarCheck,
+  DollarSign,
   User
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
@@ -75,20 +75,6 @@ export default function Navbar() {
       protegido: false
     },
     {
-      to: '/home/nosotros',
-      label: 'Nosotros',
-      icon: Info,
-      componente: 'Nosotros',
-      protegido: false
-    },
-    {
-      to: '/home/contacto',
-      label: 'Contacto',
-      icon: Phone,
-      componente: 'Contacto',
-      protegido: false
-    },
-    {
       to: '/home/dashboard',
       label: 'Dashboard',
       icon: Home,
@@ -143,6 +129,13 @@ export default function Navbar() {
       icon: FileText,
       componente: 'contrato',
       protegido: true
+    },
+    {
+      to: '/home/comisiones',
+      label: 'Mis Comisiones',
+      icon: DollarSign,
+      componente: 'contrato',
+      protegido: true
     }
   ]
 
@@ -166,7 +159,7 @@ export default function Navbar() {
 
     // 🧩 Solo mostrar "Mis Inmuebles" si el usuario es agente
     if (
-      link.label === 'Mis Inmuebles' &&
+      (link.label === 'Mis Inmuebles' || link.label === 'Mis Comisiones') &&
       user.grupo_nombre?.toLowerCase() !== 'agente'
     ) {
       return false
@@ -193,18 +186,20 @@ export default function Navbar() {
   }
 
   const isActiveLink = (path) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/')
+    return (
+      location.pathname === path || location.pathname.startsWith(path + '/')
+    )
   }
 
   return (
-    <nav 
+    <nav
       className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
-        scrolled 
-          ? 'border-gray-200 bg-white shadow-md' 
+        scrolled
+          ? 'border-gray-200 bg-white shadow-md'
           : 'border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80'
       }`}
     >
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
+      <div className='px-4 sm:px-6 lg:px-8'>
         <div className='flex h-16 items-center justify-between'>
           {/* Logo */}
           <Link to='/' className='flex items-center gap-2 group'>
@@ -224,7 +219,7 @@ export default function Navbar() {
             {linksFiltrados.map((link) => {
               const isChat = link.to === '/home/chat'
               const isActive = isActiveLink(link.to)
-              
+
               return (
                 <Link
                   key={link.to}

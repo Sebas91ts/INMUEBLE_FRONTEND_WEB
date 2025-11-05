@@ -18,6 +18,10 @@ import HistorialPublicaciones from '../pages/Inmueble/Agente/HistorialPublicacio
 import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
 import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
+import ContratoAlquilerList from '../pages/ContratosAlquiler/ContratoAlquilerList';
+import ContratoAlquilerForm from '../pages/ContratosAlquiler/ContratoAlquilerForm';
+import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerDetail';
+
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -108,6 +112,19 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
+// 🧾 CONTRATOS DE ALQUILER (CU27)
+<Route
+  path='contratos-alquiler'
+  element={
+    <PrivilegedRoute componente='contrato'>
+      <Outlet />
+    </PrivilegedRoute>
+  }
+>
+  <Route index element={<ContratoAlquilerList />} />
+  <Route path='nuevo' element={<ContratoAlquilerForm />} />
+  <Route path=':id' element={<ContratoAlquilerDetail />} />
+</Route>
 
           <Route path='comisiones' element={<DashboardComisionAgente />} />
 

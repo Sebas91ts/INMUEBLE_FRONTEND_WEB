@@ -131,12 +131,21 @@ export default function Navbar() {
       protegido: true
     },
     {
+  to: '/home/contratos-alquiler',
+  label: 'Contratos Alquiler',
+  icon: FileText,
+  componente: 'contrato',
+  protegido: true
+},
+
+    {
       to: '/home/comisiones',
       label: 'Mis Comisiones',
       icon: DollarSign,
       componente: 'contrato',
       protegido: true
     }
+
   ]
 
   if (loading) {

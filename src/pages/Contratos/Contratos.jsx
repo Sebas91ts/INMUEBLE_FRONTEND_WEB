@@ -21,6 +21,11 @@ const Contratos = () => {
       id: 3,
       nombre: 'Contrato Cliente',
       descripcion: 'Contrato de servicios con cliente'
+    },
+    {
+      id: 4,
+      nombre: 'Contrato Servicio Anticretico',
+      descripcion: 'Contrato de servicios para anticréticos con cliente'
     }
   ]
 

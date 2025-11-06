@@ -20,3 +20,22 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.25s ease-out;
 }
+/* Tu archivo CSS global: index.css o global.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* <<< PEGA EL BLOQUE DE UTILITARIOS AQUÍ >>> */
+  .btn { @apply px-3 py-2 rounded-lg border; }
+  .btn-primary { @apply px-3 py-2 rounded-lg bg-slate-900 text-white; }
+  .btn-secondary { @apply px-3 py-2 rounded-lg border bg-blue-500 text-white hover:bg-blue-600; }
+  .label { @apply text-sm text-slate-600; }
+  .input { @apply w-full border rounded-lg px-3 py-2; }
+  .textarea { @apply w-full border rounded-lg px-3 py-2 min-h-[96px]; }
+  .modal { @apply fixed inset-0 bg-black/40 grid place-items-center p-4 z-50; }
+  .modal-card { @apply bg-white rounded-xl p-4 w-full max-w-lg shadow-lg; }
+}
+
+/* ... el resto de tu CSS si lo hay ... */

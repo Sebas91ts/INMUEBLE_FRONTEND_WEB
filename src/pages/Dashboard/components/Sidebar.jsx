@@ -15,7 +15,7 @@ import {
   LogOut,
   ClipboardList,
   X,
-  TrendingUp
+  TrendingUp,Bell // <<< AÑADIR ESTE ÍCONO >>>
 } from 'lucide-react'
 
 // Menú base
@@ -83,6 +83,7 @@ const baseMenuItems = [
     label: 'Contratos',
     path: '/dashboard/contratos'
   },
+  
   {
     id: 'chat',
     icon: MessageSquare,
@@ -112,7 +113,13 @@ const baseMenuItems = [
     icon: TrendingUp,
     label: 'Comisiones',
     path: '/dashboard/comisiones'
-  }
+  },
+  {
+    id: 'alerta', // Usar 'alerta' en minúsculas para el filtro de privilegios
+    icon: Bell, // Usaremos el icono Bell (Campana)
+    label: 'Gestión de Alertas',
+    path: '/dashboard/alertas' // La ruta que definiste en AdminRoutes.jsx
+  },
 ]
 
 export default function Sidebar() {

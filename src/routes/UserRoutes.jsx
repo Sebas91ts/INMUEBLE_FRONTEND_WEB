@@ -18,6 +18,7 @@ import HistorialPublicaciones from '../pages/Inmueble/Agente/HistorialPublicacio
 import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
 import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
+import Notificaciones from '../pages/Alertas/Notificaciones' // <<< AÑADIR ESTA LÍNEA >>>
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -105,6 +106,15 @@ export default function UserRoutes() {
             element={
               <PrivilegedRoute componente='contrato'>
                 <FormContratoServicios />
+              </PrivilegedRoute>
+            }
+          />
+          {/* === AÑADIR ESTE BLOQUE DE RUTA === */}
+          <Route
+            path='mis-notificaciones' // Ruta: /mis-notificaciones
+            element={
+              <PrivilegedRoute componente='ALERTA'>
+                <Notificaciones />
               </PrivilegedRoute>
             }
           />

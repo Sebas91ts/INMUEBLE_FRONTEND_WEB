@@ -115,6 +115,19 @@ const baseMenuItems = [
     path: '/dashboard/comisiones'
   },
   {
+    id: 'anticretico',
+    icon: TrendingUp,
+    label: 'Anticretico',
+    path: '/dashboard/contratos-anticretico'
+  },
+  {
+    id: 'reportes',
+    icon: TrendingUp,
+    label: 'Reportes',
+    path: '/dashboard/reportes'
+  },
+  },
+  {
     id: 'alerta', // Usar 'alerta' en minúsculas para el filtro de privilegios
     icon: Bell, // Usaremos el icono Bell (Campana)
     label: 'Gestión de Alertas',

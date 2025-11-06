@@ -16,6 +16,14 @@ const ContratosList = ({ onCreateContrato }) => {
       descripcion: 'Contrato para agentes inmobiliarios',
       icon: '👨‍💼',
       color: 'green'
+    },
+    {
+      id: 3,
+      type: 'servicios-antireticos-inmobiliarios',
+      nombre: 'Contrato de Servicios Anticréticos Inmobiliarios',
+      descripcion: 'Contrato para la prestación de servicios inmobiliarios con clientes anticréticos',
+      icon: '🏠',
+      color: 'blue'
     }
   ]
 

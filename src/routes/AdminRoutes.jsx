@@ -23,6 +23,9 @@ import Bitacora from '../pages/Bitacora/Bitacora'
 import TiposInmueble from '../pages/Inmuebles/Tipos'
 import DashboardComisiones from '../pages/Comisiones/DashBoardComisiones'
 import AlertasAdmin from '../pages/Alertas/AlertasAdmin' // <<< AÑADIR ESTA LÍNEA >>>
+import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
+import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
+import ReportesIA from '../pages/Reportes/ReportesIA'
 export default function AdminRoutes() {
   return (
     <Routes>
@@ -148,6 +151,9 @@ export default function AdminRoutes() {
           }
         />
         <Route path='comisiones' element={<DashboardComisiones />} />
+        <Route path="contratos-anticretico" element={<AnticreticoPage />} />
+        <Route path="crear-contrato-anticretico" element={<CrearContratoPage /> } />
+        <Route path="reportes" element={<ReportesIA /> } />
       </Route>
 
       <Route path='*' element={<Navigate to='/dashboard' />} />

@@ -53,3 +53,7 @@ export const getMisInmuebles = (estado = 'todos') =>
 
 export const getResumenMisInmuebles = () =>
   instancia.get('inmueble/mis-inmuebles/resumen');
+
+export const buscarInmueblesNLP = (query) => {
+  return instancia.get(`inmueble/busqueda/natural/?q=${encodeURIComponent(query)}`);
+};

@@ -5,7 +5,7 @@ import { getAgentes } from '../../../api/usuarios/usuarios'
 import { useAuth } from '../../../hooks/useAuth'
 import { PrinterIcon } from 'lucide-react'
 
-const FormContratoServicios = ({ onBack }) => {
+const FormContratoAnticreticoServicios = ({ onBack }) => {
   const { user } = useAuth()
   const [formData, setFormData] = useState({
     // Campos básicos
@@ -543,4 +543,4 @@ const FormContratoServicios = ({ onBack }) => {
   )
 }
 
-export default FormContratoServicios
+export default FormContratoAnticreticoServicios

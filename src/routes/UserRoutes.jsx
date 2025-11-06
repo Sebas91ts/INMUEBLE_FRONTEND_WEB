@@ -17,10 +17,12 @@ import Citas from '../pages/Citas/Citas'
 import HistorialPublicaciones from '../pages/Inmueble/Agente/HistorialPublicaciones'
 import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
+import FormContratoAnticreticoServicios from '../pages/Contratos/components/FormContratoAnticreticoServicios'
 import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
 import ContratoAlquilerList from '../pages/ContratosAlquiler/ContratoAlquilerList';
 import ContratoAlquilerForm from '../pages/ContratosAlquiler/ContratoAlquilerForm';
 import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerDetail';
+import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
 
 export default function UserRoutes() {
   return (
@@ -104,14 +106,23 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
-          <Route
-            path='contratos'
-            element={
-              <PrivilegedRoute componente='contrato'>
-                <FormContratoServicios />
-              </PrivilegedRoute>
-            }
-          />
+      {/* 🧾 CONTRATOS GENERALES */}
+      <Route
+        path="contratos"
+        element={
+          <PrivilegedRoute componente="contrato">
+            <Outlet />
+          </PrivilegedRoute>
+        }
+      >
+        {/* Página principal: selección del tipo de contrato */}
+        <Route index element={<SeleccionTipoContrato />} />
+      
+        {/* Subrutas para cada tipo */}
+        <Route path="venta" element={<FormContratoServicios />} />
+        <Route path="alquiler" element={<FormContratoAnticreticoServicios />} />
+        <Route path="anticretico" element={<FormContratoAnticreticoServicios />} />
+      </Route>
 // 🧾 CONTRATOS DE ALQUILER (CU27)
 <Route
   path='contratos-alquiler'

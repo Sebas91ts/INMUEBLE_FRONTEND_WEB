@@ -1,12 +1,30 @@
 // src/pages/HomeUser/ContentHomeUser.jsx
-import { Link } from "react-router-dom";
-import { ArrowRight, MapPin, Bed, Bath, Square } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  MapPin,
+  Bed,
+  Bath,
+  Square,
+  Search,
+  Check,
+} from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
-  // TIP: si luego quieres conectar destacados reales, trae 3 inmuebles del backend aquí
+  const [busquedaNLP, setBusquedaNLP] = useState("");
+  const navigate = useNavigate();
+
+  const handleBusqueda = (e) => {
+    e.preventDefault();
+    if (busquedaNLP.trim()) {
+      navigate(`/home/propiedades?busqueda=${encodeURIComponent(busquedaNLP)}`);
+    }
+  };
+
   const featuredProperties = [
+    // ... (sin cambios)
     {
-      // Si tienes un id real de tu BD, ponlo en idReal. Si no, se abrirá /propiedades
       idReal: null,
       title: "Villa Moderna en la Costa",
       location: "Marbella, España",
@@ -41,40 +59,127 @@ export default function Home() {
     },
   ];
 
+  const pricingPlans = [
+    // ... (sin cambios)
+    {
+      name: "Agente Individual",
+      price: "$49",
+      frequency: "/mes",
+      description:
+        "Perfecto para agentes que empiezan y quieren máxima visibilidad.",
+      features: [
+        "Hasta 10 propiedades listadas",
+        "Dashboard de agente",
+        "Soporte por email",
+      ],
+      cta: "Empezar Ahora",
+      href: "/home/registro/agente",
+      isFeatured: false,
+    },
+    {
+      name: "Agencia Pro",
+      price: "$199",
+      frequency: "/mes",
+      description: "La solución ideal para agencias en crecimiento.",
+      features: [
+        "Propiedades ilimitadas",
+        "Dashboard de agencia (5 usuarios)",
+        "Reportes avanzados",
+        "Soporte prioritario 24/7",
+      ],
+      cta: "Elegir Plan Pro",
+      href: "/home/registro/agencia-pro",
+      isFeatured: true,
+    },
+    {
+      name: "Enterprise",
+      price: "Custom",
+      frequency: "",
+      description:
+        "Para grandes inmobiliarias con necesidades y volumen a medida.",
+      features: [
+        "Todo lo de Pro",
+        "Integraciones API",
+        "Gestor de cuenta dedicado",
+        "Marca blanca",
+      ],
+      cta: "Contactar Ventas",
+      href: "/home/agentes-contacto",
+      isFeatured: false,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Hero Section */}
-      <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-stone-100 px-4 py-20">
+      {/* Sección Hero (sin cambios) */}
+      <section
+        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat px-4 py-20"
+        style={{
+          backgroundImage: `linear-gradient(rgba(20, 20, 22, 0.6), rgba(20, 20, 22, 0.6)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')`,
+        }}
+      >
+        {/* ... (contenido hero sin cambios) ... */}
         <div className="container mx-auto text-center">
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-stone-900 sm:text-6xl md:text-7xl lg:text-8xl text-balance">
-            Encuentra tu hogar perfecto
+          <h1 className="mb-4 text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl text-balance">
+            Tu nuevo hogar te espera
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-stone-600 sm:text-xl text-pretty">
-            Descubre propiedades exclusivas en las mejores ubicaciones. Tu
-            próximo hogar te está esperando.
+          <p className="mx-auto mb-10 max-w-2xl text-lg text-stone-200 sm:text-xl text-pretty">
+            Usa nuestro buscador inteligente para describir la propiedad de tus
+            sueños.
           </p>
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mx-auto max-w-3xl rounded-xl border border-stone-200 bg-white p-6 shadow-xl md:p-8">
+            <form onSubmit={handleBusqueda} className="flex flex-col gap-4">
+              <label
+                htmlFor="search"
+                className="text-left text-lg font-medium text-stone-800"
+              >
+                ¿Qué estás buscando?
+              </label>
+              <div className="relative flex w-full">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                  <Search className="h-5 w-5 text-stone-400" />
+                </div>
+                <input
+                  id="search"
+                  type="text"
+                  placeholder="Ej: 'Casa con 3 dormitorios que no pase de 50000 bs en Santa Cruz'"
+                  className="w-full rounded-l-md border border-stone-300 bg-stone-50 py-4 pl-12 pr-4 text-lg text-stone-900 ring-0 transition placeholder:text-stone-500 focus:border-orange-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={busquedaNLP}
+                  onChange={(e) => setBusquedaNLP(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="rounded-r-md bg-orange-600 px-8 py-4 text-lg font-semibold text-white transition hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                  aria-label="Buscar propiedad"
+                >
+                  Buscar
+                </button>
+              </div>
+            </form>
+          </div>
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              to="/propiedades"
-              className="inline-flex min-w-[200px] items-center justify-center rounded-md bg-stone-900 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
-              aria-label="Ver todas las propiedades"
+              to="/home/propiedades"
+              className="inline-flex min-w-[220px] items-center justify-center rounded-md border border-transparent bg-orange-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-orange-500"
+              aria-label="Explorar todas las propiedades"
             >
-              Ver Propiedades
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Explorar Catálogo
             </Link>
             <Link
-              to="/contacto"
-              className="inline-flex min-w-[200px] items-center justify-center rounded-md border border-stone-900 bg-transparent px-6 py-3 text-base font-medium text-stone-900 transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
-              aria-label="Contactar agente"
+              to="/home/agentes-contacto"
+              className="inline-flex min-w-[220px] items-center justify-center rounded-md border border-white/80 bg-white/20 px-6 py-3 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+              aria-label="Contactar un agente"
             >
-              Contactar Agente
+              Hablar con un Agente
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Featured Properties Section */}
+      {/* Featured Properties Section (sin cambios) */}
       <section className="py-20 px-4 bg-white">
+        {/* ... (contenido de propiedades sin cambios) ... */}
         <div className="container mx-auto">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -84,12 +189,11 @@ export default function Home() {
               Selección exclusiva de nuestras mejores propiedades disponibles
             </p>
           </div>
-
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {featuredProperties.map((property, idx) => {
               const detailHref = property.idReal
-                ? `/propiedades/${property.idReal}`
-                : "/propiedades"; // ← si no hay id real, envia al listado
+                ? `/home/propiedades/${property.idReal}`
+                : "/home/propiedades";
               const img = property.image || "/placeholder.svg";
 
               return (
@@ -148,10 +252,9 @@ export default function Home() {
               );
             })}
           </div>
-
           <div className="mt-12 text-center">
             <Link
-              to="/propiedades"
+              to="/home/propiedades"
               className="inline-flex items-center justify-center rounded-md border border-stone-900 bg-transparent px-6 py-3 text-base font-medium text-stone-900 transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
               aria-label="Ver todas las propiedades"
             >
@@ -161,8 +264,87 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* --- SECCIÓN DE PLANES MODIFICADA --- */}
+      <section className="py-20 px-4 bg-stone-50">
+        <div className="container mx-auto">
+          <div className="mb-12 text-center">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
+              Planes para Agentes y Agencias
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-stone-600">
+              Elige la solución que mejor se adapta a tus necesidades para
+              vender más rápido.
+            </p>
+          </div>
+
+          <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.name}
+                // --- 1. AÑADIDO 'group' Y 'hover:' AL BORDE ---
+                className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
+                  plan.isFeatured
+                    ? "border-2 border-orange-500" // El destacado lo mantiene por defecto
+                    : "border-stone-200"
+                } hover:border-2 hover:border-orange-500`} // Todas las cards lo ganan en hover
+              >
+                {plan.isFeatured && (
+                  <div className="absolute top-0 -translate-y-1/2 rounded-full bg-orange-500 px-4 py-1 text-sm font-semibold text-white shadow-md left-1/2 -translate-x-1/2">
+                    Más Popular
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  {/* --- 2. AÑADIDO 'group-hover:' AL TÍTULO --- */}
+                  <h3 className="text-2xl font-semibold text-stone-900 transition-colors group-hover:text-orange-600">
+                    {plan.name}
+                  </h3>
+                  <p className="mt-2 text-stone-600">{plan.description}</p>
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-5xl font-bold text-stone-900">
+                    {plan.price}
+                  </span>
+                  {plan.frequency && (
+                    <span className="ml-1 text-lg text-stone-500">
+                      {plan.frequency}
+                    </span>
+                  )}
+                </div>
+
+                <ul className="mb-8 space-y-3 text-stone-600">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <Check className="h-5 w-5 flex-shrink-0 text-orange-500" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-auto">
+                  <Link
+                    to={plan.href}
+                    // --- 3. AÑADIDO 'group-hover:' AL BOTÓN (para los no-destacados) ---
+                    className={`inline-flex w-full items-center justify-center rounded-md px-6 py-3 text-base font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                      plan.isFeatured
+                        ? "bg-orange-600 text-white hover:bg-orange-500" // Botón destacado
+                        : "bg-white text-orange-600 border border-orange-600 hover:bg-orange-50 group-hover:bg-orange-600 group-hover:text-white" // Botón normal + efecto group-hover
+                    }`}
+                  >
+                    {plan.cta}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      {/* --- FIN DE LA SECCIÓN MODIFICADA --- */}
+
+      {/* CTA Section (sin cambios) */}
       <section className="bg-stone-900 px-4 py-20 text-white">
+        {/* ... (contenido cta sin cambios) ... */}
         <div className="container mx-auto text-center">
           <h2 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl text-balance">
             ¿Listo para encontrar tu hogar ideal?
@@ -172,7 +354,7 @@ export default function Home() {
             camino
           </p>
           <Link
-            to="/contacto"
+            to="/home/agentes-contacto"
             className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-base font-medium text-stone-900 transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-stone-900"
           >
             Agenda una Consulta

@@ -1,8 +1,9 @@
-// src/pages/HomeUser/Propiedades.jsx
+// src/pages/HomeUser/Propiedades.jsx - VERSIÓN ACTUALIZADA
 import { useEffect, useState } from "react";
-import { getInmuebles } from "../../api/inmueble/index";
+import { getInmuebles, buscarInmueblesNLP } from "../../api/inmueble/index"; // 👈 AÑADIR la nueva función
 import { Search, Filter, Loader2, AlertCircle } from "lucide-react";
 import PropertyCard from "../../components/PropertyCard";
+import { useLocation } from "react-router-dom"; 
 
 export default function Propiedades() {
   const [tipo, setTipo] = useState("");
@@ -10,22 +11,100 @@ export default function Propiedades() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [ciudadFiltro, setCiudadFiltro] = useState("");
+  const [modoNLP, setModoNLP] = useState(false); // 👈 NUEVO: para saber si estamos en búsqueda NLP
+  const location = useLocation(); 
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await getInmuebles(tipo);
-        const { values: { inmuebles = [] } = {} } = data.data;
-        setInmuebles(inmuebles);
-      } catch (err) {
-        console.error("Error cargando inmuebles:", err);
-        setInmuebles([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [tipo]);
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const busquedaFromURL = urlParams.get('busqueda');
+    
+    if (busquedaFromURL) {
+      setBusqueda(busquedaFromURL);
+      // 👇 NUEVO: Si viene búsqueda de URL, hacer búsqueda NLP
+      handleBusquedaNLP(busquedaFromURL);
+    } else {
+      // 👇 Si no hay búsqueda, cargar inmuebles normales
+      cargarInmueblesNormales();
+    }
+  }, [location, tipo]); // 👈 Añadir tipo como dependencia
+
+  // 👇 NUEVA FUNCIÓN: Cargar inmuebles normales
+  const cargarInmueblesNormales = async () => {
+    setLoading(true);
+    setModoNLP(false);
+    try {
+      const data = await getInmuebles(tipo);
+      const { values: { inmuebles = [] } = {} } = data.data;
+      setInmuebles(inmuebles);
+    } catch (err) {
+      console.error("Error cargando inmuebles:", err);
+      setInmuebles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 👇 NUEVA FUNCIÓN: Búsqueda NLP
+  const handleBusquedaNLP = async (query) => {
+    if (!query.trim()) {
+      cargarInmueblesNormales();
+      return;
+    }
+
+    setLoading(true);
+    setModoNLP(true);
+    try {
+      const data = await buscarInmueblesNLP(query);
+      const anuncios = data.data.values.anuncios || [];
+      
+      // 👇 Transformar los datos del formato NLP al formato que espera tu componente
+      const inmueblesTransformados = anuncios.map(anuncio => ({
+        id: anuncio.inmueble,
+        titulo: anuncio.inmueble_info.titulo,
+        direccion: anuncio.inmueble_info.direccion,
+        ciudad: anuncio.inmueble_info.ciudad,
+        superficie: anuncio.inmueble_info.superficie,
+        dormitorios: anuncio.inmueble_info.dormitorios,
+        banos: anuncio.inmueble_info.baños,
+        precio: anuncio.inmueble_info.precio,
+        tipo_operacion: anuncio.inmueble_info.tipo_operacion,
+        fotos: anuncio.inmueble_info.fotos || []
+      }));
+
+      setInmuebles(inmueblesTransformados);
+    } catch (err) {
+      console.error("Error en búsqueda NLP:", err);
+      // Si falla NLP, cargar búsqueda normal
+      cargarInmueblesNormales();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 👇 ACTUALIZAR: Manejar cambio en el input de búsqueda
+  const handleCambioBusqueda = (e) => {
+    const valor = e.target.value;
+    setBusqueda(valor);
+    
+    // Si se borra la búsqueda, volver a modo normal
+    if (!valor.trim()) {
+      cargarInmueblesNormales();
+    }
+  };
+
+  // 👇 ACTUALIZAR: Filtrar inmuebles (solo en modo normal)
+  const inmueblesFiltrados = modoNLP 
+    ? inmuebles // En modo NLP, no aplicar filtros adicionales
+    : inmuebles.filter((inmueble) => {
+        const matchBusqueda = inmueble.titulo?.toLowerCase().includes(busqueda.toLowerCase()) ||
+                              inmueble.direccion?.toLowerCase().includes(busqueda.toLowerCase());
+        const matchCiudad = !ciudadFiltro || inmueble.ciudad === ciudadFiltro;
+        return matchBusqueda && matchCiudad;
+      });
 
   const tiposOperacion = [
     { value: "", label: "Todas" },
@@ -34,16 +113,10 @@ export default function Propiedades() {
     { value: "anticretico", label: "Anticrético" }
   ];
 
-  // Obtener ciudades únicas
-  const ciudadesUnicas = [...new Set(inmuebles.map(i => i.ciudad).filter(Boolean))];
-
-  // Filtrar inmuebles por búsqueda y ciudad
-  const inmueblesFiltrados = inmuebles.filter((inmueble) => {
-    const matchBusqueda = inmueble.titulo?.toLowerCase().includes(busqueda.toLowerCase()) ||
-                          inmueble.direccion?.toLowerCase().includes(busqueda.toLowerCase());
-    const matchCiudad = !ciudadFiltro || inmueble.ciudad === ciudadFiltro;
-    return matchBusqueda && matchCiudad;
-  });
+  // Obtener ciudades únicas (solo en modo normal)
+  const ciudadesUnicas = modoNLP 
+    ? [] 
+    : [...new Set(inmuebles.map(i => i.ciudad).filter(Boolean))];
 
   const btnBase = "px-4 py-2 rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-1 font-medium text-sm";
   const btnOn = "bg-stone-900 text-white border-stone-900";
@@ -56,25 +129,33 @@ export default function Propiedades() {
         <div className="space-y-4">
           <div>
             <h1 className="text-3xl font-bold text-stone-900">
-              Propiedades Disponibles
+              {modoNLP ? "Resultados de Búsqueda Inteligente" : "Propiedades Disponibles"}
             </h1>
             <p className="text-stone-600 mt-1">
-              {inmuebles.length} {inmuebles.length === 1 ? 'propiedad' : 'propiedades'}
+              {inmueblesFiltrados.length} {inmueblesFiltrados.length === 1 ? 'propiedad' : 'propiedades'}
+              {modoNLP && " encontradas"}
             </p>
+            {modoNLP && (
+              <p className="text-sm text-orange-600 mt-1">
+                🔍 Búsqueda inteligente: "{busqueda}"
+              </p>
+            )}
           </div>
 
-          {/* Filtros por tipo */}
-          <div className="flex flex-wrap gap-2">
-            {tiposOperacion.map((op) => (
-              <button
-                key={op.value || "todas"}
-                onClick={() => setTipo(op.value)}
-                className={`${btnBase} ${tipo === op.value ? btnOn : btnOff}`}
-              >
-                {op.label}
-              </button>
-            ))}
-          </div>
+          {/* Filtros por tipo - OCULTAR en modo NLP */}
+          {!modoNLP && (
+            <div className="flex flex-wrap gap-2">
+              {tiposOperacion.map((op) => (
+                <button
+                  key={op.value || "todas"}
+                  onClick={() => setTipo(op.value)}
+                  className={`${btnBase} ${tipo === op.value ? btnOn : btnOff}`}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Buscador y filtros */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -82,13 +163,24 @@ export default function Propiedades() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Buscar por título o dirección..."
+                placeholder={
+                  modoNLP 
+                    ? "Modifica tu búsqueda inteligente..." 
+                    : "Buscar por título, dirección o usar búsqueda inteligente..."
+                }
                 className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all"
                 value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                onChange={handleCambioBusqueda}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleBusquedaNLP(busqueda);
+                  }
+                }}
               />
             </div>
-            {ciudadesUnicas.length > 0 && (
+            
+            {/* Select de ciudades - OCULTAR en modo NLP */}
+            {!modoNLP && ciudadesUnicas.length > 0 && (
               <div className="relative sm:w-56">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 w-4 h-4" />
                 <select
@@ -105,6 +197,16 @@ export default function Propiedades() {
                 </select>
               </div>
             )}
+            
+            {/* 👇 NUEVO: Botón para búsqueda NLP manual */}
+            {!modoNLP && busqueda && (
+              <button
+                onClick={() => handleBusquedaNLP(busqueda)}
+                className="bg-orange-600 text-white px-6 py-2.5 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+              >
+                Búsqueda Inteligente
+              </button>
+            )}
           </div>
         </div>
 
@@ -112,12 +214,14 @@ export default function Propiedades() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-10 w-10 animate-spin text-stone-900 mb-4" />
-            <p className="text-stone-600">Cargando propiedades...</p>
+            <p className="text-stone-600">
+              {modoNLP ? "Analizando tu búsqueda..." : "Cargando propiedades..."}
+            </p>
           </div>
         ) : inmueblesFiltrados.length ? (
           <>
             {/* Contador de resultados */}
-            {(busqueda || ciudadFiltro) && (
+            {(busqueda || ciudadFiltro) && !modoNLP && (
               <div className="flex items-center justify-between px-1 py-2 border-b border-stone-200">
                 <p className="text-sm text-stone-600">
                   {inmueblesFiltrados.length} {inmueblesFiltrados.length === 1 ? 'resultado' : 'resultados'}
@@ -126,6 +230,7 @@ export default function Propiedades() {
                   onClick={() => {
                     setBusqueda("");
                     setCiudadFiltro("");
+                    cargarInmueblesNormales();
                   }}
                   className="text-sm text-stone-900 hover:underline font-medium"
                 >
@@ -158,21 +263,24 @@ export default function Propiedades() {
               No se encontraron propiedades
             </h3>
             <p className="text-stone-600 mb-6">
-              {busqueda || ciudadFiltro
-                ? "Intenta ajustar los filtros de búsqueda."
-                : "No hay propiedades disponibles en este momento."}
+              {modoNLP 
+                ? "No encontramos propiedades que coincidan con tu búsqueda inteligente."
+                : busqueda || ciudadFiltro
+                  ? "Intenta ajustar los filtros de búsqueda."
+                  : "No hay propiedades disponibles en este momento."
+              }
             </p>
-            {(busqueda || ciudadFiltro) && (
-              <button
-                onClick={() => {
-                  setBusqueda("");
-                  setCiudadFiltro("");
-                }}
-                className="inline-flex items-center justify-center rounded-lg bg-stone-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-stone-800 transition-colors"
-              >
-                Limpiar filtros
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setBusqueda("");
+                setCiudadFiltro("");
+                setModoNLP(false);
+                cargarInmueblesNormales();
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-stone-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-stone-800 transition-colors"
+            >
+              Volver a todas las propiedades
+            </button>
           </div>
         )}
       </div>

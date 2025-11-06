@@ -28,6 +28,7 @@ import ContratoAlquilerForm from '../pages/ContratosAlquiler/ContratoAlquilerFor
 import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerDetail';
 import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
 import PaginaGestionContratos from '../pages/Contratos/ContratoFinalPage'
+import Notificaciones from '../pages/Alertas/Notificaciones' // <<< AÑADIR ESTA LÍNEA >>>
 export default function UserRoutes() {
   return (
     <ChatProvider>
@@ -140,6 +141,15 @@ export default function UserRoutes() {
                 <CrearContratoPage />
               </PrivilegedRoute>
             } 
+          />
+          {/* === AÑADIR ESTE BLOQUE DE RUTA === */}
+          <Route
+            path='mis-notificaciones' // Ruta: /mis-notificaciones
+            element={
+              <PrivilegedRoute componente='ALERTA'>
+                <Notificaciones />
+              </PrivilegedRoute>
+            }
           />
 
           <Route path="contratos-page" element={<PaginaGestionContratos />} />

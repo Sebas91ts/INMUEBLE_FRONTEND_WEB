@@ -22,6 +22,7 @@ import InmuebleDetail from '../pages/Inmuebles/InmuebleDetail'
 import Bitacora from '../pages/Bitacora/Bitacora'
 import TiposInmueble from '../pages/Inmuebles/Tipos'
 import DashboardComisiones from '../pages/Comisiones/DashBoardComisiones'
+import AlertasAdmin from '../pages/Alertas/AlertasAdmin' // <<< AÑADIR ESTA LÍNEA >>>
 import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
 import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
 import ReportesIA from '../pages/Reportes/ReportesIA'
@@ -46,6 +47,15 @@ export default function AdminRoutes() {
           element={
             <PrivilegedRoute componente='bitacora'>
               <Bitacora />
+            </PrivilegedRoute>
+          }
+        />
+        {/* === AÑADIR ESTE BLOQUE DE RUTA === */}
+        <Route
+          path='alertas' // Ruta: /dashboard/alertas
+          element={
+            <PrivilegedRoute componente='ALERTA'>
+              <AlertasAdmin />
             </PrivilegedRoute>
           }
         />

@@ -24,6 +24,7 @@ import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
 import { ChatContext } from '../../../contexts/ChatContext'
 import UserAvatar from '../../Dashboard/components/UserAvatar'
+import useAlertBadge from '../../../hooks/useAlertBadge' // <<< HOOK DE ALERTAS >>>
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -33,6 +34,7 @@ export default function Navbar() {
   const { chats } = useContext(ChatContext)
   const navigate = useNavigate()
   const location = useLocation()
+  const totalAlerts = useAlertBadge(user?.token, user?.grupo_nombre?.toLowerCase()) // <<< USO DEL HOOK >>>
 
   // Detectar scroll para cambiar estilo del navbar
   useEffect(() => {
@@ -134,6 +136,13 @@ export default function Navbar() {
       protegido: true
     },
     {
+      to: '/home/mis-notificaciones', // <<< RUTA DE NOTIFICACIONES >>>
+      label: 'Notificaciones',
+      icon: Bell,
+      componente: 'ALERTA', 
+      protegido: false
+    },
+    {
       to: '/home/comisiones',
       label: 'Mis Comisiones',
       icon: DollarSign,
@@ -231,6 +240,7 @@ export default function Navbar() {
           <div className='hidden lg:flex items-center gap-1'>
             {linksFiltrados.map((link) => {
               const isChat = link.to === '/home/chat'
+              const isAlerts = link.to === '/home/mis-notificaciones' // <<< AGREGADO PARA ESCRITORIO >>>
               const isActive = isActiveLink(link.to)
 
               return (
@@ -251,6 +261,12 @@ export default function Navbar() {
                         {totalUnread > 99 ? '99+' : totalUnread}
                       </span>
                     )}
+                    {/* 🔔 Badge en desktop para Notificaciones del Sistema */}
+                    {isAlerts && totalAlerts > 0 && (
+                      <span className='inline-flex items-center justify-center rounded-full bg-blue-600 w-5 h-5 text-xs font-bold text-white'>
+                        {totalAlerts > 99 ? '99+' : totalAlerts}
+                      </span>
+                    )}
                   </span>
                   {isActive && (
                     <span className='absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full'></span>
@@ -264,6 +280,19 @@ export default function Navbar() {
           <div className='hidden lg:flex items-center gap-3'>
             {user ? (
               <>
+                {/* Badge de Alertas en el menú de usuario (Opcional, pero útil) */}
+                {totalAlerts > 0 && (
+                  <Link
+                    to='/home/mis-notificaciones'
+                    className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors'
+                  >
+                    <Bell className='h-5 w-5' />
+                    <span className='absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center'>
+                      {totalAlerts > 9 ? '9+' : totalAlerts}
+                    </span>
+                  </Link>
+                )}
+
                 <UserAvatar user={user} />
                 <button
                   onClick={handleLogout}
@@ -286,19 +315,33 @@ export default function Navbar() {
 
           {/* Mobile Actions */}
           <div className='flex items-center gap-3 lg:hidden'>
-            {/* Campanita de notificaciones (solo si hay usuario) */}
+            {/* 🔔 Campana de Notificaciones del Sistema (Prioridad en Móvil) */}
             {user && (
               <button
-                onClick={() => navigate('/home/chat')}
-                className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
-                aria-label='Ir a mensajes'
+                  onClick={() => navigate('/home/mis-notificaciones')} 
+                  className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
+                  aria-label='Ir a notificaciones'
               >
-                <Bell className='h-5 w-5' />
-                {totalUnread > 0 && (
-                  <span className='absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center'>
-                    {totalUnread > 9 ? '9+' : totalUnread}
+                  <Bell className='h-5 w-5' />
+                  {totalAlerts > 0 && (
+                      <span className='absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center'>
+                          {totalAlerts > 9 ? '9+' : totalAlerts}
+                      </span>
+                  )}
+              </button>
+            )}
+            
+            {/* 💬 Ícono de Chat (Separado de la Campana) */}
+            {user && totalUnread > 0 && (
+              <button
+                  onClick={() => navigate('/home/chat')}
+                  className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
+                  aria-label='Ir a mensajes'
+              >
+                  <MessageCircle className='h-5 w-5' /> 
+                  <span className='absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center'>
+                      {totalUnread > 9 ? '9+' : totalUnread}
                   </span>
-                )}
               </button>
             )}
 
@@ -343,6 +386,7 @@ export default function Navbar() {
                 {linksFiltrados.map((link) => {
                   const Icon = link.icon
                   const isChat = link.to === '/home/chat'
+                  const isAlerts = link.to === '/home/mis-notificaciones'
                   const isActive = isActiveLink(link.to)
 
                   return (
@@ -362,6 +406,11 @@ export default function Navbar() {
                       {isChat && totalUnread > 0 && (
                         <span className='bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5'>
                           {totalUnread > 99 ? '99+' : totalUnread}
+                        </span>
+                      )}
+                      {isAlerts && totalAlerts > 0 && ( // <<< BADGE DE ALERTS >>>
+                        <span className='bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5'>
+                          {totalAlerts > 99 ? '99+' : totalAlerts}
                         </span>
                       )}
 

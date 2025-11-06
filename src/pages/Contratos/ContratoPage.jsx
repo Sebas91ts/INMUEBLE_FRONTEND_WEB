@@ -4,6 +4,8 @@ import FormContratoServicios from './components/FormContratoServicios'
 import FormContratoAgente from './components/FormContratoAgente'
 import FormContratoAnticreticoServicios from './components/FormContratoAnticreticoServicios'
 
+
+
 const ContratoPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const contratoType = searchParams.get('type')

@@ -112,7 +112,19 @@ const baseMenuItems = [
     icon: TrendingUp,
     label: 'Comisiones',
     path: '/dashboard/comisiones'
-  }
+  },
+  {
+    id: 'anticretico',
+    icon: TrendingUp,
+    label: 'Anticretico',
+    path: '/dashboard/contratos-anticretico'
+  },
+  {
+    id: 'reportes',
+    icon: TrendingUp,
+    label: 'Reportes',
+    path: '/dashboard/reportes'
+  },
 ]
 
 export default function Sidebar() {

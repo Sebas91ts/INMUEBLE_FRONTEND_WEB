@@ -19,11 +19,15 @@ import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
 import FormContratoAnticreticoServicios from '../pages/Contratos/components/FormContratoAnticreticoServicios'
 import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
+import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
+import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
+import ReportesIA from '../pages/Reportes/ReportesIA'
+
 import ContratoAlquilerList from '../pages/ContratosAlquiler/ContratoAlquilerList';
 import ContratoAlquilerForm from '../pages/ContratosAlquiler/ContratoAlquilerForm';
 import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerDetail';
 import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
-
+import PaginaGestionContratos from '../pages/Contratos/ContratoFinalPage'
 export default function UserRoutes() {
   return (
     // Provider para escuchar el chat en toda la sesion web del usuario
@@ -106,6 +110,7 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
+      
       {/* 🧾 CONTRATOS GENERALES */}
       <Route
         path="contratos"
@@ -138,7 +143,26 @@ export default function UserRoutes() {
 </Route>
 
           <Route path='comisiones' element={<DashboardComisionAgente />} />
+          <Route 
+            path="contratos-anticretico" // Gestión
+            element={
+              <PrivilegedRoute componente='contrato'>
+                <AnticreticoPage />
+              </PrivilegedRoute>
+            } 
+          />
+          <Route 
+            path="crear-contrato-anticretico" // Creación
+            element={
+              <PrivilegedRoute componente='contrato'>
+                <CrearContratoPage />
+              </PrivilegedRoute>
+            } 
+          />
 
+          <Route path="contratos-page" element={<PaginaGestionContratos />} />
+          <Route path="/reportes" element={<ReportesIA />} />
+          
           {/* Redirección por defecto */}
           <Route path='*' element={<Navigate to='/' />} />
         </Route>

@@ -12,6 +12,8 @@ export const getInmuebles = (tipo) => {
 //listar todos los inmuebles aprobados no publicados
 export const getInmueblesNoPublicados = () => instancia.get("inmueble/aprobados-no-publicados");
 
+//listar todos los inmuebles aprobados no publicados para contratos anticreticos
+export const getInmueblesNoPublicadosTipoOperacion = (tipo_operacion) => instancia.post("inmueble/anuncios/no_publicados_tipo_operacion", {tipo_operacion});
 // Obtener inmueble por ID
 export const getInmuebleById = (id) => instancia.get(`inmueble/inmueble/${id}`);
 

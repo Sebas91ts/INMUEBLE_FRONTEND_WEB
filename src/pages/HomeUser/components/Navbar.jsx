@@ -16,7 +16,9 @@ import {
   FileText,
   MessageCircle,
   DollarSign,
-  User
+  User,
+  Activity,
+  PlusCircle
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
@@ -109,13 +111,7 @@ export default function Navbar() {
       componente: 'inmueble',
       protegido: true
     },
-    {
-      to: '/home/inmuebles/crear',
-      label: 'Crear Inmueble',
-      icon: FileText,
-      componente: 'inmueble',
-      protegido: true
-    },
+    
     {
       to: '/home/citas',
       label: 'Agenda',
@@ -131,12 +127,29 @@ export default function Navbar() {
       protegido: true
     },
     {
+      to: '/home/contratos-page', 
+      label: 'Contratos Cliente',
+      icon: FileText, // Cambiado
+      componente: 'contrato',
+      protegido: true
+    },
+    {
       to: '/home/comisiones',
       label: 'Mis Comisiones',
       icon: DollarSign,
       componente: 'contrato',
       protegido: true
-    }
+    },
+    
+    {
+      to: '/home/reportes', 
+      label: 'Reportes',
+      icon: Activity, // Cambiado
+      componente: 'contrato',
+      protegido: true
+    },
+
+    
   ]
 
   if (loading) {

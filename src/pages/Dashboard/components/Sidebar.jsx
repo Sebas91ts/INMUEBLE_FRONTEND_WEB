@@ -126,7 +126,6 @@ const baseMenuItems = [
     label: 'Reportes',
     path: '/dashboard/reportes'
   },
-  },
   {
     id: 'alerta', // Usar 'alerta' en minúsculas para el filtro de privilegios
     icon: Bell, // Usaremos el icono Bell (Campana)

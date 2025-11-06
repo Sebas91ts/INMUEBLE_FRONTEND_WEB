@@ -135,7 +135,6 @@ export default function Navbar() {
       componente: 'contrato',
       protegido: true
     },
-    },
     {
       to: '/home/mis-notificaciones', // <<< RUTA DE NOTIFICACIONES >>>
       label: 'Notificaciones',

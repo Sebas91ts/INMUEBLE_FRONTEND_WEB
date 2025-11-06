@@ -18,23 +18,31 @@ import HistorialPublicaciones from '../pages/Inmueble/Agente/HistorialPublicacio
 import DetalleHistorial from '../pages/Inmueble/Agente/DetalleHistorial'
 import FormContratoServicios from '../pages/Contratos/components/FormContratoServicios'
 import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente'
+
 export default function UserRoutes() {
   return (
-    // Provider para escuchar el chat en toda la sesion web del usuario
     <ChatProvider>
       <Routes>
         <Route path='/' element={<HomeUser />}>
-          {/* Página por defecto */}
+          {/* --- ZONA PÚBLICA --- */}
+          {/* Estas rutas son accesibles para CUALQUIER visitante */}
           <Route index element={<Home />} />
-
-          {/* Páginas públicas */}
           <Route path='nosotros' element={<div>Nosotros</div>} />
           <Route path='contacto' element={<div>Contacto</div>} />
+
+          {/* ✅ RUTA DE PROPIEDADES PÚBLICA Y CORRECTA */}
+          <Route path='propiedades'>
+            <Route index element={<Propiedades />} /> {/* Muestra la lista */}
+            <Route path=':id' element={<PropiedadDetail />} /> {/* Muestra el detalle */}
+          </Route>
+
+
+          {/* --- ZONA PRIVADA Y PROTEGIDA --- */}
+          {/* Estas rutas requieren que el usuario inicie sesión y/o tenga privilegios */}
           <Route path='editar-perfil' element={<EditarPerfil />} />
           <Route path='agentes-contacto' element={<AgentesInmobiliaria />} />
           <Route path='chat' element={<ChatPage />} />
 
-          {/* Páginas protegidas por privilegios */}
           <Route
             path='desempeno'
             element={
@@ -45,40 +53,14 @@ export default function UserRoutes() {
           />
 
           <Route
-            path='inmuebles'
+            path='inmuebles/crear'
             element={
               <PrivilegedRoute componente='Inmueble'>
-                <Outlet />
+                <CreateInmueble />
               </PrivilegedRoute>
             }
-          >
-            <Route path='crear' element={<CreateInmueble />} />
-          </Route>
-
-          {/* Páginas protegidas por privilegios */}
-          <Route
-            path='propiedades'
-            element={
-              <PrivilegedRoute componente='Inmueble'>
-                <Outlet />
-              </PrivilegedRoute>
-            }
-          >
-            <Route
-              path='propiedades'
-              element={
-                <PrivilegedRoute componente='Inmueble'>
-                  <Outlet />
-                </PrivilegedRoute>
-              }
-            ></Route>
-            {/* ✅ Listado de propiedades */}
-            <Route index element={<Propiedades />} />
-
-            {/* ✅ Detalle de un inmueble */}
-            <Route path=':id' element={<PropiedadDetail />} />
-          </Route>
-          {/* 🧩 NUEVA SECCIÓN PARA EL AGENTE */}
+          />
+          
           <Route
             path='mis-inmuebles'
             element={
@@ -92,6 +74,7 @@ export default function UserRoutes() {
             <Route path='historial' element={<HistorialPublicaciones />} />
             <Route path='detalle/:id' element={<DetalleHistorial />} />
           </Route>
+
           <Route
             path='citas'
             element={
@@ -100,6 +83,7 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
+
           <Route
             path='contratos'
             element={
@@ -111,7 +95,7 @@ export default function UserRoutes() {
 
           <Route path='comisiones' element={<DashboardComisionAgente />} />
 
-          {/* Redirección por defecto */}
+          {/* Redirección por defecto para cualquier ruta no encontrada */}
           <Route path='*' element={<Navigate to='/' />} />
         </Route>
       </Routes>

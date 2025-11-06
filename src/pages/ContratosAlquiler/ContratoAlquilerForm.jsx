@@ -1,15 +1,47 @@
 // src/pages/ContratosAlquiler/ContratoAlquilerForm.jsx
-// src/pages/ContratosAlquiler/ContratoAlquilerForm.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { generarContratoAlquiler } from "../../api/contratos/alquiler";
-import { FileText, ArrowLeft, Loader2 } from "lucide-react";
+import { FileText, ArrowLeft, Loader2, Home, User, FileDigit, Calendar, Shield, AlertTriangle, ChevronDown } from "lucide-react";
 import instancia from "../../api/axios"; // para obtener inmuebles
+import { useAuth } from "../../hooks/useAuth"; // ❗️ IMPORTANTE: Necesitas esto para el agente_id
 
+// --- Componentes de UI Reutilizables ---
+const inputClass = "w-full rounded-lg border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed";
+const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
+
+const SelectInput = ({ label, children, ...props }) => (
+  <div>
+    <label className={labelClass}>{label}</label>
+    <div className="relative">
+      <select {...props} className={`${inputClass} appearance-none`}>
+        {children}
+      </select>
+      <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+    </div>
+  </div>
+);
+const TextInput = ({ label, ...props }) => (
+  <div>
+    <label className={labelClass}>{label}</label>
+    <input {...props} className={inputClass} />
+  </div>
+);
+const DateInput = ({ label, ...props }) => (
+  <div>
+    <label className={labelClass}>{label}</label>
+    <input type="date" {...props} className={`${inputClass} [color-scheme:light]`} />
+  </div>
+);
+
+// --- Componente Principal ---
 export default function ContratoAlquilerForm() {
   const navigate = useNavigate();
+  const { user } = useAuth(); // ❗️ Obtén el usuario logueado
   const [inmuebles, setInmuebles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingInmuebles, setLoadingInmuebles] = useState(true);
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     inmueble_id: "",
@@ -18,24 +50,32 @@ export default function ContratoAlquilerForm() {
     arrendatario_domicilio: "",
     monto: "",
     garantia: "",
-    vigencia_meses: "",
-    fecha_inicio: "",
+    vigencia_meses: "12",
+    fecha_inicio: new Date().toISOString().split("T")[0],
     fecha_fin: "",
-    ciudad: "",
+    ciudad: "Santa Cruz",
   });
 
-  // 🔹 Cargar inmuebles disponibles
+ // 🔹 Cargar inmuebles disponibles
   useEffect(() => {
     const fetchInmuebles = async () => {
+      setLoadingInmuebles(true);
       try {
         const res = await instancia.get("/inmueble/listar_inmuebles");
         const data = res.data?.values?.inmuebles || [];
+        
+        // ❗️ FILTRO MODIFICADO (igual al V1):
+        // Ahora solo filtra por "disponible", sin importar si es venta o alquiler.
         const disponibles = data.filter(
           (i) => i.anuncio?.estado === "disponible"
         );
+        
         setInmuebles(disponibles);
       } catch (error) {
         console.error("Error cargando inmuebles:", error);
+        setError("Error al cargar los inmuebles disponibles.");
+      } finally {
+        setLoadingInmuebles(false);
       }
     };
     fetchInmuebles();
@@ -50,9 +90,15 @@ export default function ContratoAlquilerForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(""); // Limpia errores antiguos
 
     if (!formData.inmueble_id) {
-      alert("Selecciona un inmueble antes de generar el contrato.");
+      setError("Selecciona un inmueble antes de generar el contrato.");
+      return;
+    }
+    
+    if (!user || !user.id) {
+      setError("No se pudo identificar al agente. Por favor, vuelve a iniciar sesión.");
       return;
     }
 
@@ -60,13 +106,13 @@ export default function ContratoAlquilerForm() {
     try {
       // ⚙️ Adaptar datos a lo que espera el backend
       const payload = {
-        agente_id: 1, // 🔸 ID del agente logueado (ajusta si usas auth)
+        agente_id: user.id, // ❗️ USA EL ID DEL USUARIO LOGUEADO
         inmueble_id: formData.inmueble_id,
         arrendatario_nombre: formData.arrendatario_nombre,
         arrendatario_ci: formData.arrendatario_ci,
         arrendatario_domicilio: formData.arrendatario_domicilio,
         monto_alquiler: formData.monto,
-        monto_garantia: formData.garantia,
+        monto_garantia: formData.garantia || "0", // Enviar 0 si está vacío
         vigencia_meses: formData.vigencia_meses,
         fecha_inicio: formData.fecha_inicio,
         fecha_fin: formData.fecha_fin,
@@ -75,24 +121,30 @@ export default function ContratoAlquilerForm() {
 
       const res = await generarContratoAlquiler(payload);
 
-      // ✅ 1. Verificar respuesta exitosa
+      // ✅ --- LA SOLUCIÓN "A PRUEBA de BALAS" ---
+      // 1. Verificar respuesta exitosa
       if (res.data?.status === 1 && res.data?.values?.pdf_url) {
-        const pdfUrl = `http://127.0.0.1:8000${res.data.values.pdf_url}`;
-        window.open(pdfUrl, "_blank"); // 🧾 abre el PDF directo desde backend
+        
+        // 2. El backend (Django) DEBE enviar la URL absoluta y completa
+        // (ej: https://api.inmobiliaria.com/media/contrato_1.pdf)
+        const pdfUrl = res.data.values.pdf_url;
+
+        // 3. Simplemente abre la URL que el backend te dio.
+        //    ¡YA NO SE HARCODEA "127.0.0.1:8000"!
+        window.open(pdfUrl, "_blank");
+        
+        // 4. Navega de vuelta
+        navigate("/home/contratos-alquiler"); // ❗️Asegúrate que esta ruta sea correcta
+
       } else {
         console.error("Respuesta inesperada:", res.data);
-        alert("No se pudo generar el contrato correctamente.");
+        setError("No se pudo generar el contrato. La respuesta del servidor no fue válida.");
       }
-
-      // 🔙 volver a lista de contratos
-      navigate("/home/contratos-alquiler");
     } catch (error) {
       console.error("Error generando contrato:", error.response || error);
-      alert(
-        `Error: ${
-          error.response?.data?.message ||
-          "Ocurrió un error al generar el contrato."
-        }`
+      setError(
+        error.response?.data?.message ||
+        "Ocurrió un error al generar el contrato."
       );
     } finally {
       setLoading(false);
@@ -100,183 +152,177 @@ export default function ContratoAlquilerForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="min-h-screen bg-gray-100 py-10 px-4">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-blue-600 transition"
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" /> Volver
+            <ArrowLeft className="w-4 h-4" /> Volver
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-600" />
-            Generar Contrato de Alquiler
-          </h1>
+          
+          <div className="inline-flex items-center justify-center rounded-xl bg-blue-100 text-blue-700 p-2.5">
+            <FileText className="w-6 h-6" />
+          </div>
         </div>
+        
+        <h1 className="text-2xl font-bold text-gray-900 text-center mb-6">
+          Generar Contrato de Alquiler
+        </h1>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 🔹 Inmueble */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Inmueble
-            </label>
-            <select
+        <form 
+          onSubmit={handleSubmit} 
+          className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg space-y-6"
+        >
+          {/* --- Sección 1: Inmueble --- */}
+          <fieldset>
+            <legend className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 border-b pb-2">
+              <Home className="w-5 h-5 text-blue-600" />
+              1. Inmueble
+            </legend>
+            <SelectInput
+              label="Inmueble Disponible (para Alquiler)"
               name="inmueble_id"
               value={formData.inmueble_id}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              disabled={loadingInmuebles}
             >
-              <option value="">Seleccionar inmueble...</option>
+              <option value="">{loadingInmuebles ? "Cargando..." : "Seleccionar inmueble..."}</option>
               {inmuebles.map((i) => (
                 <option key={i.id} value={i.id}>
-                  {i.titulo} — {i.ciudad}
+                  {i.titulo} — {i.ciudad} (Bs. {i.precio})
                 </option>
               ))}
-            </select>
-          </div>
+            </SelectInput>
+            {inmuebles.length === 0 && !loadingInmuebles && (
+                <p className="text-xs text-red-600 mt-1.5">
+                    No se encontraron inmuebles en alquiler disponibles.
+                </p>
+            )}
+          </fieldset>
 
-          {/* 🔹 Datos del Arrendatario */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del Arrendatario
-              </label>
-              <input
+          {/* --- Sección 2: Arrendatario --- */}
+          <fieldset>
+            <legend className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 border-b pb-2">
+              <User className="w-5 h-5 text-blue-600" />
+              2. Datos del Arrendatario (Inquilino)
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput
+                label="Nombre Completo"
                 type="text"
                 name="arrendatario_nombre"
                 value={formData.arrendatario_nombre}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                CI del Arrendatario
-              </label>
-              <input
+              <TextInput
+                label="Cédula de Identidad (CI)"
                 type="text"
                 name="arrendatario_ci"
                 value={formData.arrendatario_ci}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Domicilio del Arrendatario
-            </label>
-            <input
-              type="text"
-              name="arrendatario_domicilio"
-              value={formData.arrendatario_domicilio}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-
-          {/* 🔹 Datos del contrato */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Monto de Alquiler (Bs)
-              </label>
-              <input
+            <div className="mt-4">
+              <TextInput
+                label="Domicilio del Arrendatario"
+                type="text"
+                name="arrendatario_domicilio"
+                value={formData.arrendatario_domicilio}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </fieldset>
+          
+          {/* --- Sección 3: Condiciones --- */}
+          <fieldset>
+            <legend className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 border-b pb-2">
+              <FileDigit className="w-5 h-5 text-blue-600" />
+              3. Condiciones del Contrato
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput
+                label="Monto de Alquiler (Bs)"
                 type="number"
                 name="monto"
                 value={formData.monto}
                 onChange={handleChange}
                 required
                 min="1"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Garantía (Bs)
-              </label>
-              <input
+              <TextInput
+                label="Monto de Garantía (Bs)"
                 type="number"
                 name="garantia"
                 value={formData.garantia}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
+                min="0"
               />
             </div>
-          </div>
+          </fieldset>
 
-          {/* 🔹 Fechas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vigencia (meses)
-              </label>
-              <input
+          {/* --- Sección 4: Vigencia --- */}
+          <fieldset>
+            <legend className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 border-b pb-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              4. Vigencia
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <TextInput
+                label="Vigencia (meses)"
                 type="number"
                 name="vigencia_meses"
                 value={formData.vigencia_meses}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Inicio
-              </label>
-              <input
-                type="date"
+              <DateInput
+                label="Fecha Inicio"
                 name="fecha_inicio"
                 value={formData.fecha_inicio}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Fin
-              </label>
-              <input
-                type="date"
+              <DateInput
+                label="Fecha Fin"
                 name="fecha_fin"
                 value={formData.fecha_fin}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
               />
             </div>
-          </div>
+          </fieldset>
 
-          {/* 🔹 Ciudad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Ciudad
-            </label>
-            <input
+           <TextInput
+              label="Ciudad (lugar de firma)"
               type="text"
               name="ciudad"
               value={formData.ciudad}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-600"
             />
-          </div>
+
+          {/* --- Error --- */}
+          {error && (
+             <div className="mt-4 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <span>{error}</span>
+             </div>
+          )}
 
           {/* 🔘 Botón */}
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-4 border-t border-gray-100">
             <button
               type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-70"
+              disabled={loading || loadingInmuebles}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

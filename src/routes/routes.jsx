@@ -1,9 +1,11 @@
-// routes/AppRoutes.jsx
+// routes/routes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import LoginForm from "../pages/login";
 import AdminRoutes from "./AdminRoutes";
 import UserRoutes from "./UserRoutes"; // ⬅️ usamos el router público completo
+import Success from "../pages/Success";
+import Comprobante from "../pages/Comprobante";
 
 export default function AppRoutes() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -24,6 +26,9 @@ export default function AppRoutes() {
   // 👇 Público (cliente): montamos TODAS las rutas de UserRoutes en /*
   return (
     <Routes>
+      {/* Ruta pública para Stripe */}
+      <Route path="/success" element={<Success />} />
+      <Route path="/comprobante" element={<Comprobante />} />
       {/* Layout del cliente */}
       <Route path='/home/*' element={<UserRoutes />} />
       <Route path='/login' element={<LoginForm />} />

@@ -131,8 +131,12 @@ export const AuthProvider = ({ children }) => {
         privilegios: state.privilegios // 👈 se agrega
       }
       localStorage.setItem('authData', JSON.stringify(authData))
+      localStorage.setItem("access_token", state.accessToken)
+      sessionStorage.setItem("access_token", state.accessToken)
     } else {
       localStorage.removeItem('authData')
+      localStorage.removeItem("access_token")
+      sessionStorage.removeItem("access_token")
     }
   }, [
     state.isAuthenticated,
@@ -185,7 +189,8 @@ export const AuthProvider = ({ children }) => {
           accessToken: values.token
         }
       })
-
+      localStorage.setItem("access_token", values.token);
+      sessionStorage.setItem("access_token", values.token);
       // 🔹 Obtener privilegios
       const privRes = await getPrivilegios(values.token)
       if (privRes.data.status === 1) {
@@ -265,6 +270,8 @@ export const AuthProvider = ({ children }) => {
             accessToken: values.token
           }
         })
+      localStorage.setItem("access_token", values.token);
+      sessionStorage.setItem("access_token", values.token);
 
         return { success: true, data: values }
       } else {

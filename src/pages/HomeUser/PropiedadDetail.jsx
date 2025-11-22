@@ -1,3 +1,4 @@
+// src/pages/HomeUser/PropiedadDetail.jsx
 import { useEffect, useState, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getInmuebleById } from '../../api/inmueble'
@@ -6,6 +7,8 @@ import { createChat } from '../../api/chat/chat'
 import { useAuth } from '../../hooks/useAuth'
 import { ChatContext } from '../../contexts/ChatContext'
 import LoginRequired from '../../components/LoginRequired'
+import BotonComprar from "../../components/BotonComprar";
+
 import {
   Loader2,
   MessageSquare,
@@ -165,6 +168,7 @@ export default function PropiedadDetail() {
             </div>
           </div>
         </div>
+
 
         {/* GALERÍA DE FOTOS - MÁXIMA PRIORIDAD VISUAL */}
         <div className='bg-white rounded-2xl shadow-xl overflow-hidden mb-8 border border-gray-100'>
@@ -352,7 +356,11 @@ export default function PropiedadDetail() {
               </div>
             )}
           </div>
-
+{inmueble.tipo_operacion === "venta" && (
+  <div className="mt-6">
+    <BotonComprar inmuebleId={inmueble.id} />
+  </div>
+)}
           {/* TARJETA DE CONTACTO (Antes Sidebar) - Ahora de ancho completo al final */}
           <div className='bg-white rounded-2xl shadow-lg p-6 sticky bottom-4 z-10 md:static border-t md:border-t-0 border-blue-200'>
             <h3 className='text-2xl font-bold text-gray-900 mb-4'>

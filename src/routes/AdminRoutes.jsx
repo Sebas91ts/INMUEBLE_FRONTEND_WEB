@@ -26,6 +26,7 @@ import AlertasAdmin from '../pages/Alertas/AlertasAdmin' // <<< AÑADIR ESTA LÍ
 import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
 import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
 import ReportesIA from '../pages/Reportes/ReportesIA'
+import ReportesGerenciales from '../pages/ReportesGerenciales/ReportesGerenciales'
 export default function AdminRoutes() {
   return (
     <Routes>
@@ -38,8 +39,8 @@ export default function AdminRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<EstadisticasDashboard />} />
-        <Route path='estadisticas' element={<EstadisticasDashboard />} />
+        <Route index element={<ReportesGerenciales />} />
+        <Route path='estadisticas' element={<ReportesGerenciales />} />
 
         {/* Bitácora */}
         <Route
@@ -151,9 +152,12 @@ export default function AdminRoutes() {
           }
         />
         <Route path='comisiones' element={<DashboardComisiones />} />
-        <Route path="contratos-anticretico" element={<AnticreticoPage />} />
-        <Route path="crear-contrato-anticretico" element={<CrearContratoPage /> } />
-        <Route path="reportes" element={<ReportesIA /> } />
+        <Route path='contratos-anticretico' element={<AnticreticoPage />} />
+        <Route
+          path='crear-contrato-anticretico'
+          element={<CrearContratoPage />}
+        />
+        <Route path='reportes' element={<ReportesIA />} />
       </Route>
 
       <Route path='*' element={<Navigate to='/dashboard' />} />

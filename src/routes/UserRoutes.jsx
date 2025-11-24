@@ -29,6 +29,7 @@ import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerD
 import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
 import PaginaGestionContratos from '../pages/Contratos/ContratoFinalPage'
 import Notificaciones from '../pages/Alertas/Notificaciones' // <<< AÑADIR ESTA LÍNEA >>>
+import MiCuentaPage from '../pages/HomeUser/MiCuenta/MiCuentaPage'; // <-- Asume esta es la ruta de tu componente
 export default function UserRoutes() {
   return (
     <ChatProvider>
@@ -151,6 +152,30 @@ export default function UserRoutes() {
               </PrivilegedRoute>
             }
           />
+          <Route 
+            path='mis-contratos-cliente' // URL: /home/mis-contratos-cliente
+            element={
+              <PrivilegedRoute componente='contrato'>
+                <MiCuentaPage /> {/* Usamos la página central del cliente */}
+              </PrivilegedRoute>
+            }
+          />
+        
+         {/* 📚 RUTA: DETALLE Y LOG DE PAGOS (Historial de Pagos) */}
+          <Route 
+            path='mis-pagos/:contratoId/historial' 
+            element={
+              <PrivilegedRoute componente='contrato'>
+              {/* NOTA: Debes crear este componente de detalle después */}
+              {/* <HistorialDetallePago /> */} 
+               <div>Detalle Historial de Pagos</div>
+              </PrivilegedRoute>
+             }
+          />
+          
+      
+            {   /* ❌ RUTA: Manejar la cancelación (opcional) */}
+        
 
           <Route path="contratos-page" element={<PaginaGestionContratos />} />
           <Route path="/reportes" element={<ReportesIA />} />

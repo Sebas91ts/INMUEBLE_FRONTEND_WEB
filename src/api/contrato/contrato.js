@@ -57,3 +57,7 @@ export const getUsuarios = () => {
 export const getAgentes = () => {
   return instancia.get('usuario/listar-agentes');
 };
+export const getMisContratosCliente = async () => {
+    // 🚨 CORRECCIÓN APLICADA: Usar 'instancia' en lugar de 'clienteAxios'
+    return instancia.get('/contrato/mis-contratos/'); 
+}

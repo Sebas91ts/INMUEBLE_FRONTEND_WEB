@@ -157,6 +157,13 @@ export default function Navbar() {
       componente: 'contrato',
       protegido: true
     },
+    {
+      to: '/home/mis-contratos-cliente', 
+      label: 'Mi Cuenta', // Nombre para el menú
+      icon: FileText, 
+      componente: 'contrato',
+      protegido: false
+    },
 
     
   ]

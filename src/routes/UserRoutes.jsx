@@ -29,6 +29,8 @@ import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerD
 import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
 import PaginaGestionContratos from '../pages/Contratos/ContratoFinalPage'
 import Notificaciones from '../pages/Alertas/Notificaciones' // <<< AÑADIR ESTA LÍNEA >>>
+import MapaInteractivo from '../pages/MapaInteractivo/MapaInteractivo'; 
+import { Map } from 'lucide-react';
 export default function UserRoutes() {
   return (
     <ChatProvider>
@@ -45,7 +47,18 @@ export default function UserRoutes() {
             <Route index element={<Propiedades />} /> {/* Muestra la lista */}
             <Route path=':id' element={<PropiedadDetail />} /> {/* Muestra el detalle */}
           </Route>
-
+          {/* ✅ NUEVA RUTA DEL MAPA (Protegida) */}
+          <Route
+              path='Mapa'
+              element={
+                  // Puedes usar PrivilegedRoute si quieres restringir quién ve el mapa
+                  // O dejarlo libre si todos los logueados pueden verlo.
+                  // Aquí uso PrivilegedRoute asumiendo que es parte del módulo 'Inmueble'
+                  <PrivilegedRoute componente='Inmueble'>
+                      <MapaInteractivo />
+                  </PrivilegedRoute>
+              }
+          />
 
           {/* --- ZONA PRIVADA Y PROTEGIDA --- */}
           {/* Estas rutas requieren que el usuario inicie sesión y/o tenga privilegios */}

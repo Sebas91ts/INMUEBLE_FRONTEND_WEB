@@ -9,7 +9,7 @@ export default function Comprobante() {
   useEffect(() => {
     if (!token || !ventaId) return;
 
-    axios.get(`http://localhost:8000/ventas/detalle/${ventaId}/`, {
+    axios.get(`https://inmobiliaria-backend-qqwv.onrender.com/ventas/detalle/${ventaId}/`, {
       headers: { Authorization: `Token ${token}` },
     })
     .then((res) => setVenta(res.data.values))

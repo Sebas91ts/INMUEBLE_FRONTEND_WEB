@@ -3,7 +3,7 @@ import { useState, useContext, useMemo, useEffect, useRef } from 'react'
 import {
   Menu, X, Home, Building2, Users, Bell, TrendingUp, Calendar,
   FileText, MessageCircle, DollarSign, User, Activity, Map, ChevronDown,
-  LogOut, LayoutDashboard, Briefcase
+  LogOut, LayoutDashboard, Briefcase, PlusCircle
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
@@ -79,6 +79,7 @@ export default function Navbar() {
         { to: '/home/mis-inmuebles/aprobados', label: 'Mis Inmuebles', icon: Building2, componente: 'Inmueble', protegido: true },
         { to: '/home/desempeno', label: 'Desempeño', icon: TrendingUp, componente: 'inmueble', protegido: true },
         { to: '/home/comisiones', label: 'Mis Comisiones', icon: DollarSign, componente: 'contrato', protegido: true },
+        { to: '/home/pago_alquiler', label: 'Pagos', icon: PlusCircle, componente: 'alquileres', protegido: true},
       ]
     }
   ];

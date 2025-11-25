@@ -6,7 +6,8 @@ import AdminRoutes from "./AdminRoutes";
 import UserRoutes from "./UserRoutes"; // ⬅️ usamos el router público completo
 import Success from "../pages/Success";
 import Comprobante from "../pages/Comprobante";
-
+import PagoExito from "../components/PagoExito";
+import PagoCancelado from "../components/PagoCancelado";
 export default function AppRoutes() {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -29,6 +30,8 @@ export default function AppRoutes() {
       {/* Ruta pública para Stripe */}
       <Route path="/success" element={<Success />} />
       <Route path="/comprobante" element={<Comprobante />} />
+      <Route path="/home/pago/exito/:pagoId" element={<PagoExito />} />
+      <Route path="/home/pago/cancelado/:pagoId" element={<PagoCancelado />} />
       {/* Layout del cliente */}
       <Route path='/home/*' element={<UserRoutes />} />
       <Route path='/login' element={<LoginForm />} />

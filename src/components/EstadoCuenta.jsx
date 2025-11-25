@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePagos } from '../hooks/usePagos';
 
 const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
@@ -8,33 +8,46 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
     error, 
     iniciarPagoStripe,
     cargarEstadoCuenta,
-    simularPagoExitoso  // ✅ Nueva función del hook
+    simularPagoExitoso
   } = usePagos(contratoId);
+
+  // ✅ Estado para mensajes de éxito
+  const [mensajeExito, setMensajeExito] = useState('');
+  // ✅ Variable simple para desarrollo/producción
+  const isDevelopment = true;
 
   const handlePagarStripe = async () => {
     try {
       await iniciarPagoStripe();
+      // Mostrar mensaje de éxito temporal
+      setMensajeExito('🔄 Redirigiendo a Stripe... Tu pago está siendo procesado.');
+      setTimeout(() => setMensajeExito(''), 5000);
     } catch (err) {
       console.error('Error al iniciar pago:', err.message);
+      setMensajeExito('❌ Error al procesar el pago. Intenta nuevamente.');
+      setTimeout(() => setMensajeExito(''), 5000);
     }
   };
 
   const handleSimularPago = async () => {
     try {
-      // Buscar el primer pago pendiente para simular
       const pagoPendiente = estadoCuenta.pagos_pendientes?.[0];
       if (pagoPendiente) {
         await simularPagoExitoso(pagoPendiente.id);
-        // Recargar el estado de cuenta para ver los cambios
-        cargarEstadoCuenta();
+        setMensajeExito('✅ ¡Pago simulado exitosamente! El estado se ha actualizado.');
+        setTimeout(() => setMensajeExito(''), 5000);
       }
     } catch (err) {
       console.error('Error en simulación:', err.message);
+      setMensajeExito('❌ Error en la simulación. Intenta nuevamente.');
+      setTimeout(() => setMensajeExito(''), 5000);
     }
   };
 
+  // ✅ AGREGAR ESTA FUNCIÓN QUE FALTABA
   const handleRecargar = () => {
     cargarEstadoCuenta();
+    setMensajeExito(''); // Limpiar mensajes al recargar
   };
 
   const formatCurrency = (amount) => {
@@ -79,6 +92,19 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
 
   return (
     <div className="estado-cuenta">
+      {/* ✅ Mensaje de éxito global */}
+      {mensajeExito && (
+        <div className={`alert ${mensajeExito.includes('❌') ? 'alert-danger' : mensajeExito.includes('✅') ? 'alert-success' : 'alert-info'} alert-dismissible fade show`} role="alert">
+          <i className={`fas ${mensajeExito.includes('❌') ? 'fa-exclamation-circle' : mensajeExito.includes('✅') ? 'fa-check-circle' : 'fa-info-circle'} me-2`}></i>
+          {mensajeExito}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setMensajeExito('')}
+          ></button>
+        </div>
+      )}
+
       {/* Header con información de la propiedad */}
       <div className="card bg-gradient-primary text-white mb-4">
         <div className="card-body">
@@ -103,8 +129,8 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
         </div>
       </div>
 
-      {/* MODO DESARROLLO - Panel de Simulación */}
-      {process.env.NODE_ENV === 'development' && estadoCuenta.pagos_pendientes?.length > 0 && (
+      {/* ✅ MODO DESARROLLO - Panel de Simulación (usando variable simple) */}
+      {isDevelopment && estadoCuenta.pagos_pendientes?.length > 0 && (
         <div className="card border-warning mb-4">
           <div className="card-header bg-warning bg-opacity-10 border-warning">
             <h6 className="mb-0 text-warning">
@@ -200,6 +226,7 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
               <div className="col-md-8 text-md-start">
                 <h5 className="text-dark mb-1">Realizar Pago del Mes</h5>
                 <p className="text-muted mb-0">
+                  <i className="fas fa-calendar-alt me-2"></i>
                   Vence el {new Date(estadoCuenta.proximo_vencimiento).toLocaleDateString()}
                 </p>
               </div>
@@ -221,6 +248,9 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
                     </>
                   )}
                 </button>
+                <p className="text-muted mt-2 small">
+                  Serás redirigido a Stripe para completar el pago
+                </p>
               </div>
             </div>
           </div>
@@ -273,7 +303,7 @@ const EstadoCuenta = ({ contratoId, onVerificarPago }) => {
               <i className="fas fa-clock me-2"></i>
               Pagos Pendientes
             </h5>
-            {process.env.NODE_ENV === 'development' && (
+            {isDevelopment && (
               <small className="text-muted">Haz clic en "Simular Pago Exitoso" para probar</small>
             )}
           </div>

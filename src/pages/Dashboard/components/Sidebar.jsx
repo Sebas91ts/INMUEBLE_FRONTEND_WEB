@@ -15,7 +15,7 @@ import {
   LogOut,
   ClipboardList,
   X,
-  TrendingUp,Bell // <<< AÑADIR ESTE ÍCONO >>>
+  TrendingUp,Bell, Map // <<< AÑADIR ESTE ÍCONO >>>
 } from 'lucide-react'
 
 // Menú base
@@ -132,6 +132,7 @@ const baseMenuItems = [
     label: 'Gestión de Alertas',
     path: '/dashboard/alertas' // La ruta que definiste en AdminRoutes.jsx
   },
+ 
 ]
 
 export default function Sidebar() {

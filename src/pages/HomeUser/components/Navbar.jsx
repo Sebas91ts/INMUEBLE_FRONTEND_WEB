@@ -1,466 +1,315 @@
-/* eslint-disable no-irregular-whitespace */
-// src/pages/HomeUser/components/Navbar.jsx
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useState, useContext, useMemo, useEffect } from 'react'
+import { useState, useContext, useMemo, useEffect, useRef } from 'react'
 import {
-  Menu,
-  X,
-  Home,
-  Building2,
-  Phone,
-  Info,
-  LogOut,
-  Users,
-  Bell,
-  TrendingUp,
-  Calendar,
-  FileText,
-  MessageCircle,
-  DollarSign,
-  User,
-  Activity,
-  PlusCircle
+  Menu, X, Home, Building2, Users, Bell, TrendingUp, Calendar,
+  FileText, MessageCircle, DollarSign, User, Activity, Map, ChevronDown,
+  LogOut, LayoutDashboard, Briefcase, PlusCircle
 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { usePrivilegios } from '../../../hooks/usePrivilegios'
 import { ChatContext } from '../../../contexts/ChatContext'
 import UserAvatar from '../../Dashboard/components/UserAvatar'
-import useAlertBadge from '../../../hooks/useAlertBadge' // <<< HOOK DE ALERTAS >>>
+import useAlertBadge from '../../../hooks/useAlertBadge'
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  // Estado para manejar qué dropdown está abierto en móvil/desktop
+  const [activeDropdown, setActiveDropdown] = useState(null) 
+  
   const { user, logout } = useAuth()
   const { privilegios, loading } = usePrivilegios()
   const { chats } = useContext(ChatContext)
   const navigate = useNavigate()
   const location = useLocation()
-  const totalAlerts = useAlertBadge(user?.token, user?.grupo_nombre?.toLowerCase()) // <<< USO DEL HOOK >>>
+  const totalAlerts = useAlertBadge(user?.token, user?.grupo_nombre?.toLowerCase())
 
-  // Detectar scroll para cambiar estilo del navbar
+  // Detectar scroll
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10)
-    }
+    const handleScroll = () => setScrolled(window.scrollY > 10)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Cerrar menú al cambiar de ruta
-  useEffect(() => {
-    setIsMenuOpen(false)
-  }, [location.pathname])
+  // Cerrar menú al cambiar ruta
+  useEffect(() => { setIsMenuOpen(false); setActiveDropdown(null); }, [location.pathname])
 
-  // 🔢 Calcular cantidad total de mensajes no leídos del otro usuario
+  // Calcular mensajes no leídos
   const totalUnread = useMemo(() => {
     if (!user || !chats) return 0
     return chats.reduce((acc, chat) => {
-      const otherUserId =
-        chat.cliente.id === user.id ? chat.agente.id : chat.cliente.id
-      const unreadFromOther = chat.mensajes.filter(
-        (msg) => !msg.leido && msg.usuario_id === otherUserId
-      ).length
+      const otherUserId = chat.cliente.id === user.id ? chat.agente.id : chat.cliente.id
+      const unreadFromOther = chat.mensajes.filter(m => !m.leido && m.usuario_id === otherUserId).length
       return acc + unreadFromOther
     }, 0)
   }, [chats, user])
 
-  const navLinks = [
+  // --- 1. DEFINICIÓN DE GRUPOS DE MENÚ ---
+  const menuGroups = [
     {
-      to: '/home',
-      label: 'Inicio',
-      icon: Home,
-      componente: 'Inicio',
-      protegido: false
+      id: 'main',
+      title: 'Principal',
+      type: 'flat', // Enlaces directos
+      items: [
+        { to: '/home', label: 'Inicio', icon: Home, componente: 'Inicio', protegido: false },
+        { to: '/home/propiedades', label: 'Propiedades', icon: Building2, componente: 'Inmueble', protegido: false },
+        { to: '/home/mapa', label: 'Mapa', icon: Map, componente: 'Inmueble', protegido: false }, // Mapa público/híbrido
+        { to: '/home/agentes-contacto', label: 'Agentes', icon: Users, componente: 'Agente', protegido: false },
+      ]
     },
     {
-      to: '/home/propiedades',
-      label: 'Propiedades',
-      icon: Building2,
-      componente: 'Inmueble',
-      protegido: false
+      id: 'gestion',
+      title: 'Gestión',
+      icon: Briefcase,
+      type: 'dropdown', // Menú desplegable
+      items: [
+        { to: '/home/citas', label: 'Agenda', icon: Calendar, componente: 'cita', protegido: true },
+        { to: '/home/contratos', label: 'Contrato Servicios', icon: FileText, componente: 'contrato', protegido: true },
+        { to: '/home/contratos-page', label: 'Contratos Cliente', icon: FileText, componente: 'contrato', protegido: true },
+        { to: '/home/reportes', label: 'Reportes', icon: Activity, componente: 'contrato', protegido: true },
+      ]
     },
     {
-      to: '/home/dashboard',
-      label: 'Dashboard',
-      icon: Home,
-      componente: 'Dashboard',
-      protegido: true
-    },
-    {
-      to: '/home/agentes-contacto',
-      label: 'Agentes',
-      icon: Users,
-      componente: 'Agente',
-      protegido: false
-    },
-    {
-      to: '/home/chat',
-      label: 'Mensajes',
-      icon: MessageCircle,
-      componente: 'chat',
-      protegido: true
-    },
-    {
-      to: '/home/mis-inmuebles/aprobados',
-      label: 'Mis Inmuebles',
-      icon: Building2,
-      componente: 'Inmueble',
-      protegido: true
-    },
-    {
-      to: '/home/desempeno',
-      label: 'Desempeño',
-      icon: TrendingUp,
-      componente: 'inmueble',
-      protegido: true
-    },   
-    {
-      to: '/home/citas',
-      label: 'Agenda',
-      icon: Calendar,
-      componente: 'cita',
-      protegido: true
-    },
-    {
-      to: '/home/contratos',
-      label: 'Contrato Servicios',
-      icon: FileText,
-      componente: 'contrato',
-      protegido: true
-    },
-    {
-      to: '/home/contratos-page', 
-      label: 'Contratos Cliente',
-      icon: FileText, // Cambiado
-      componente: 'contrato',
-      protegido: true
-    },
-    {
-      to: '/home/mis-notificaciones', // <<< RUTA DE NOTIFICACIONES >>>
-      label: 'Notificaciones',
-      icon: Bell,
-      componente: 'ALERTA', 
-      protegido: false
-    },
-    {
-      to: '/home/comisiones',
-      label: 'Mis Comisiones',
-      icon: DollarSign,
-      componente: 'contrato',
-      protegido: true
-    },   
-    {
-      to: '/home/reportes', 
-      label: 'Reportes',
-      icon: Activity, // Cambiado
-      componente: 'contrato',
-      protegido: true
-    },
-    {
-      to: '/home/pago_alquiler',
-      label: 'Pagos',
-      icon: PlusCircle,
-      componente: 'alquileres',
-      protegido: true
-    },
+      id: 'personal',
+      title: 'Mi Espacio',
+      icon: LayoutDashboard,
+      type: 'dropdown',
+      items: [
+        { to: '/home/dashboard', label: 'Dashboard Admin', icon: Home, componente: 'Dashboard', protegido: true },
+        { to: '/home/mis-inmuebles/aprobados', label: 'Mis Inmuebles', icon: Building2, componente: 'Inmueble', protegido: true },
+        { to: '/home/desempeno', label: 'Desempeño', icon: TrendingUp, componente: 'inmueble', protegido: true },
+        { to: '/home/comisiones', label: 'Mis Comisiones', icon: DollarSign, componente: 'contrato', protegido: true },
+        { to: '/home/pago_alquiler', label: 'Pagos', icon: PlusCircle, componente: 'alquileres', protegido: true},
+      ]
+    }
+  ];
 
+  // --- 2. FILTRADO DE PERMISOS ---
+  const tienePermiso = (item) => {
+    if (!item.protegido) return true;
+    if (!user) return false;
+    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true;
     
-  ]
-
-  if (loading) {
-    return (
-      <nav className='sticky top-0 z-50 w-full border-b border-gray-200 bg-white'>
-        <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex h-16 items-center justify-between'>
-            <div className='h-6 w-40 bg-gray-200 animate-pulse rounded'></div>
-            <div className='h-6 w-32 bg-gray-200 animate-pulse rounded'></div>
-          </div>
-        </div>
-      </nav>
-    )
-  }
-
-  // Filtrar links según privilegios
-  const linksFiltrados = navLinks.filter((link) => {
-    if (!link.protegido) return true
-    if (!user) return false
-
-    // 🧩 Solo mostrar "Mis Inmuebles" si el usuario es agente
-    if (
-      (link.label === 'Mis Inmuebles' || link.label === 'Mis Comisiones') &&
-      user.grupo_nombre?.toLowerCase() !== 'agente'
-    ) {
-      return false
+    // Regla especial para agentes
+    if ((item.label === 'Mis Inmuebles' || item.label === 'Mis Comisiones') && user.grupo_nombre?.toLowerCase() !== 'agente') {
+      return false;
     }
 
-    // 🧩 El administrador ve todo
-    if (user.grupo_nombre?.toLowerCase() === 'administrador') return true
-
-    // 🧩 Verificar privilegios normales
-    return privilegios.some(
-      (p) =>
-        p.componente.toLowerCase() === link.componente.toLowerCase() &&
-        (p.puede_crear ||
-          p.puede_actualizar ||
-          p.puede_eliminar ||
-          p.puede_leer ||
-          p.puede_activar)
-    )
-  })
+    return privilegios.some(p => 
+      p.componente.toLowerCase() === item.componente.toLowerCase() &&
+      (p.puede_crear || p.puede_actualizar || p.puede_eliminar || p.puede_leer || p.puede_activar)
+    );
+  };
 
   const handleLogout = async () => {
     await logout()
     setIsMenuOpen(false)
   }
 
-  const isActiveLink = (path) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + '/')
-    )
-  }
+  if (loading) return <div className="h-16 bg-white border-b animate-pulse" />;
 
   return (
-    <nav
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
-        scrolled
-          ? 'border-gray-200 bg-white shadow-md'
-          : 'border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80'
-      }`}
-    >
+    <nav className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+      scrolled ? 'border-gray-200 bg-white shadow-md' : 'border-gray-200 bg-white/95 backdrop-blur'
+    }`}>
       <div className='px-4 sm:px-6 lg:px-8'>
         <div className='flex h-16 items-center justify-between'>
-          {/* Logo */}
-          <Link to='/' className='flex items-center gap-2 group'>
+          
+          {/* --- LOGO --- */}
+          <Link to='/' className='flex items-center gap-2 group flex-shrink-0'>
             <div className='w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform'>
               <Building2 className='h-5 w-5 text-white' />
             </div>
-            <span className='text-xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent hidden sm:block'>
+            <span className='text-xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent hidden xl:block'>
               Elite Properties
-            </span>
-            <span className='text-xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent sm:hidden'>
-              Elite
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* --- NAVEGACIÓN DESKTOP (Organizada) --- */}
           <div className='hidden lg:flex items-center gap-1'>
-            {linksFiltrados.map((link) => {
-              const isChat = link.to === '/home/chat'
-              const isAlerts = link.to === '/home/mis-notificaciones' // <<< AGREGADO PARA ESCRITORIO >>>
-              const isActive = isActiveLink(link.to)
+            {menuGroups.map((group) => {
+              // Filtramos los items válidos del grupo
+              const validItems = group.items.filter(tienePermiso);
+              if (validItems.length === 0) return null;
 
-              return (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    isActive
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className='flex items-center gap-2'>
+              // 1. Si es tipo FLAT (Links directos)
+              if (group.type === 'flat') {
+                return validItems.map(link => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-all hover:bg-gray-50 text-gray-600 hover:text-blue-600 ${location.pathname === link.to ? 'text-blue-600 bg-blue-50' : ''}`}
+                  >
                     {link.label}
-                    {/* 🔴 Badge en desktop para chat */}
-                    {isChat && totalUnread > 0 && (
-                      <span className='inline-flex items-center justify-center rounded-full bg-red-600 w-5 h-5 text-xs font-bold text-white'>
-                        {totalUnread > 99 ? '99+' : totalUnread}
-                      </span>
-                    )}
-                    {/* 🔔 Badge en desktop para Notificaciones del Sistema */}
-                    {isAlerts && totalAlerts > 0 && (
-                      <span className='inline-flex items-center justify-center rounded-full bg-blue-600 w-5 h-5 text-xs font-bold text-white'>
-                        {totalAlerts > 99 ? '99+' : totalAlerts}
-                      </span>
-                    )}
-                  </span>
-                  {isActive && (
-                    <span className='absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full'></span>
-                  )}
-                </Link>
-              )
+                  </Link>
+                ));
+              }
+
+              // 2. Si es tipo DROPDOWN (Menús desplegables)
+              return (
+                <div 
+                  key={group.id} 
+                  className="relative group"
+                  onMouseEnter={() => setActiveDropdown(group.id)}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                >
+                  <button className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors hover:bg-gray-50 text-gray-600 group-hover:text-blue-600`}>
+                    {group.icon && <group.icon className="w-4 h-4" />}
+                    {group.title}
+                    <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+                  </button>
+
+                  {/* Dropdown Panel */}
+                  <div className={`absolute top-full left-0 w-56 pt-2 transition-all duration-200 origin-top-left ${
+                    activeDropdown === group.id ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'
+                  }`}>
+                    <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden p-1">
+                      {validItems.map(link => (
+                        <Link
+                          key={link.to}
+                          to={link.to}
+                          className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors hover:bg-blue-50 text-gray-700 hover:text-blue-700 ${location.pathname === link.to ? 'bg-blue-50 text-blue-700' : ''}`}
+                        >
+                          <link.icon className="w-4 h-4" />
+                          {link.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
             })}
           </div>
 
-          {/* Desktop User Menu */}
-          <div className='hidden lg:flex items-center gap-3'>
+          {/* --- ACCIONES DERECHA (Iconos + Perfil) --- */}
+          <div className='hidden lg:flex items-center gap-2'>
             {user ? (
               <>
-                {/* Badge de Alertas en el menú de usuario (Opcional, pero útil) */}
-                {totalAlerts > 0 && (
-                  <Link
-                    to='/home/mis-notificaciones'
-                    className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors'
-                  >
-                    <Bell className='h-5 w-5' />
-                    <span className='absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center'>
-                      {totalAlerts > 9 ? '9+' : totalAlerts}
-                    </span>
-                  </Link>
-                )}
+                {/* Bandeja de Iconos (Notificaciones y Mensajes) */}
+                <div className="flex items-center gap-1 mr-2 border-r border-gray-200 pr-3">
+                  <button onClick={() => navigate('/home/mis-notificaciones')} className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors group">
+                    <Bell className="w-5 h-5 group-hover:text-blue-600" />
+                    {totalAlerts > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    )}
+                  </button>
+                  
+                  <button onClick={() => navigate('/home/chat')} className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors group">
+                    <MessageCircle className="w-5 h-5 group-hover:text-blue-600" />
+                    {totalUnread > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                        {totalUnread > 9 ? '9+' : totalUnread}
+                      </span>
+                    )}
+                  </button>
+                </div>
 
-                <UserAvatar user={user} />
-                <button
-                  onClick={handleLogout}
-                  className='inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-sm font-medium text-white transition-all hover:from-red-700 hover:to-red-800 hover:scale-105 active:scale-95 shadow-lg shadow-red-600/30'
-                >
-                  <LogOut className='h-4 w-4' />
-                  Cerrar Sesión
-                </button>
+                {/* Perfil Usuario */}
+                <div className="flex items-center gap-3 pl-1">
+                  <UserAvatar user={user} className="w-8 h-8" />
+                  <div className="text-xs hidden xl:block">
+                    <p className="font-semibold text-gray-800 truncate max-w-[100px]">{user.nombre}</p>
+                    <p className="text-gray-500 capitalize">{user.grupo_nombre}</p>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Cerrar Sesión"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
               </>
             ) : (
               <Link
                 to='/login'
-                className='inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2 text-sm font-semibold text-white transition-all hover:from-blue-700 hover:to-blue-800 hover:scale-105 active:scale-95 shadow-lg shadow-blue-600/30'
+                className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20'
               >
                 <User className='h-4 w-4' />
-                Iniciar Sesión
+                Entrar
               </Link>
             )}
           </div>
 
-          {/* Mobile Actions */}
+          {/* --- MOBILE TOGGLE --- */}
           <div className='flex items-center gap-3 lg:hidden'>
-            {/* 🔔 Campana de Notificaciones del Sistema (Prioridad en Móvil) */}
+            {/* Notificaciones Móvil (Acceso rápido) */}
             {user && (
-              <button
-                  onClick={() => navigate('/home/mis-notificaciones')} 
-                  className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
-                  aria-label='Ir a notificaciones'
-              >
-                  <Bell className='h-5 w-5' />
-                  {totalAlerts > 0 && (
-                      <span className='absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center'>
-                          {totalAlerts > 9 ? '9+' : totalAlerts}
-                      </span>
-                  )}
-              </button>
+               <button onClick={() => navigate('/home/mis-notificaciones')} className="relative p-2 text-gray-600">
+                 <Bell className="w-6 h-6" />
+                 {totalAlerts > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>}
+               </button>
             )}
             
-            {/* 💬 Ícono de Chat (Separado de la Campana) */}
-            {user && totalUnread > 0 && (
-              <button
-                  onClick={() => navigate('/home/chat')}
-                  className='relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
-                  aria-label='Ir a mensajes'
-              >
-                  <MessageCircle className='h-5 w-5' /> 
-                  <span className='absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center'>
-                      {totalUnread > 9 ? '9+' : totalUnread}
-                  </span>
-              </button>
-            )}
-
-            {/* Botón del menú hamburguesa */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className='p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
-              aria-label='Toggle menu'
-            >
-              {isMenuOpen ? (
-                <X className='h-6 w-6' />
-              ) : (
-                <Menu className='h-6 w-6' />
-              )}
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='p-2 text-gray-700 hover:bg-gray-100 rounded-lg'>
+              {isMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
             </button>
           </div>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {isMenuOpen && (
-          <div className='lg:hidden border-t border-gray-200 bg-white shadow-lg'>
-            <div className='max-h-[calc(100vh-4rem)] overflow-y-auto py-4'>
-              {/* User Info Mobile */}
-              {user && (
-                <div className='px-4 pb-4 mb-4 border-b border-gray-200'>
-                  <div className='flex items-center gap-3'>
-                    <UserAvatar user={user} />
-                    <div className='flex-1 min-w-0'>
-                      <p className='text-sm font-semibold text-gray-900 truncate'>
-                        {user.nombre || 'Usuario'}
-                      </p>
-                      <p className='text-xs text-gray-500 truncate'>
-                        {user.email || ''}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Links */}
-              <div className='flex flex-col gap-1 px-2'>
-                {linksFiltrados.map((link) => {
-                  const Icon = link.icon
-                  const isChat = link.to === '/home/chat'
-                  const isAlerts = link.to === '/home/mis-notificaciones'
-                  const isActive = isActiveLink(link.to)
-
-                  return (
-                    <Link
-                      key={link.to}
-                      to={link.to}
-                      className={`relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon className='h-5 w-5 flex-shrink-0' />
-                      <span className='flex-1'>{link.label}</span>
-
-                      {/* 🔴 Badge en menú móvil */}
-                      {isChat && totalUnread > 0 && (
-                        <span className='bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5'>
-                          {totalUnread > 99 ? '99+' : totalUnread}
-                        </span>
-                      )}
-                      {isAlerts && totalAlerts > 0 && ( // <<< BADGE DE ALERTS >>>
-                        <span className='bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5'>
-                          {totalAlerts > 99 ? '99+' : totalAlerts}
-                        </span>
-                      )}
-
-                      {isActive && (
-                        <span className='absolute right-4 w-1 h-8 bg-blue-600 rounded-full'></span>
-                      )}
-                    </Link>
-                  )
-                })}
-              </div>
-
-              {/* Logout Button Mobile */}
-              {user ? (
-                <div className='px-2 pt-4 mt-4 border-t border-gray-200'>
-                  <button
-                    className='w-full flex items-center justify-center gap-2 px-4 py-3 text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-lg transition-all font-medium shadow-lg'
-                    onClick={handleLogout}
-                  >
-                    <LogOut className='w-5 h-5' />
-                    <span>Cerrar Sesión</span>
-                  </button>
-                </div>
-              ) : (
-                <div className='px-2 pt-4 mt-4 border-t border-gray-200'>
-                  <Link
-                    to='/login'
-                    className='w-full flex items-center justify-center gap-2 px-4 py-3 text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all font-semibold shadow-lg'
-                  >
-                    <User className='w-5 h-5' />
-                    <span>Iniciar Sesión</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Overlay para cerrar el menú */}
+      {/* --- MENU MOVIL --- */}
       {isMenuOpen && (
-        <div
-          className='fixed inset-0 bg-black/20 backdrop-blur-sm lg:hidden -z-10'
-          onClick={() => setIsMenuOpen(false)}
-        />
+        <div className='lg:hidden border-t border-gray-200 bg-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto'>
+          <div className='p-4 space-y-4'>
+            
+            {/* Perfil Móvil */}
+            {user && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <UserAvatar user={user} />
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">{user.nombre}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Links Móvil (Acordeón simplificado) */}
+            <div className="space-y-1">
+              {menuGroups.map(group => {
+                const validItems = group.items.filter(tienePermiso);
+                if (validItems.length === 0) return null;
+
+                return (
+                  <div key={group.id} className="py-1">
+                    {group.type === 'dropdown' && (
+                      <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {group.title}
+                      </div>
+                    )}
+                    {validItems.map(link => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        className={`flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg ${location.pathname === link.to ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        <link.icon className="w-5 h-5 text-gray-400" />
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Botones Finales Móvil */}
+            {user ? (
+              <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                 <button onClick={() => navigate('/home/chat')} className="flex items-center justify-center gap-2 p-3 bg-gray-100 rounded-lg text-gray-700 font-medium">
+                    <MessageCircle className="w-5 h-5" /> Mensajes
+                    {totalUnread > 0 && <span className="bg-blue-600 text-white text-xs px-2 rounded-full">{totalUnread}</span>}
+                 </button>
+                 <button onClick={handleLogout} className="flex items-center justify-center gap-2 p-3 bg-red-50 text-red-600 rounded-lg font-medium">
+                    <LogOut className="w-5 h-5" /> Salir
+                 </button>
+              </div>
+            ) : (
+              <Link to='/login' className="block w-full text-center py-3 bg-blue-600 text-white font-bold rounded-xl">
+                Iniciar Sesión
+              </Link>
+            )}
+          </div>
+        </div>
       )}
     </nav>
   )

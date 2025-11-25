@@ -22,7 +22,7 @@ import DashboardComisionAgente from '../pages/Comisiones/DashboardComisionAgente
 import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
 import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
 import ReportesIA from '../pages/Reportes/ReportesIA'
-
+import Pagos from '../pages/Pagos/Pagos'
 import ContratoAlquilerList from '../pages/ContratosAlquiler/ContratoAlquilerList';
 import ContratoAlquilerForm from '../pages/ContratosAlquiler/ContratoAlquilerForm';
 import ContratoAlquilerDetail from '../pages/ContratosAlquiler/ContratoAlquilerDetail';
@@ -52,7 +52,7 @@ export default function UserRoutes() {
           <Route path='editar-perfil' element={<EditarPerfil />} />
           <Route path='agentes-contacto' element={<AgentesInmobiliaria />} />
           <Route path='chat' element={<ChatPage />} />
-
+          <Route path='pago_alquiler' element={<Pagos />} />
           <Route
             path='desempeno'
             element={

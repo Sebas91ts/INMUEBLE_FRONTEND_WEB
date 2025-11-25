@@ -1,3 +1,4 @@
+/* eslint-disable no-irregular-whitespace */
 // src/pages/HomeUser/components/Navbar.jsx
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useContext, useMemo, useEffect } from 'react'
@@ -112,8 +113,7 @@ export default function Navbar() {
       icon: TrendingUp,
       componente: 'inmueble',
       protegido: true
-    },
-    
+    },   
     {
       to: '/home/citas',
       label: 'Agenda',
@@ -148,15 +148,21 @@ export default function Navbar() {
       icon: DollarSign,
       componente: 'contrato',
       protegido: true
-    },
-    
+    },   
     {
       to: '/home/reportes', 
       label: 'Reportes',
       icon: Activity, // Cambiado
       componente: 'contrato',
       protegido: true
-    },
+    },
+    {
+      to: '/home/pago_alquiler',
+      label: 'Pagos',
+      icon: PlusCircle,
+      componente: 'alquileres',
+      protegido: true
+    },
 
     
   ]

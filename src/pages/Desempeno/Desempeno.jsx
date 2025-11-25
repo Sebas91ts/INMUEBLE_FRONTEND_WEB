@@ -4,8 +4,12 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, RadialBarChart, RadialBar, ResponsiveContainer
 } from "recharts";
-import { Download, Printer, RefreshCw, AlertCircle, Sparkles, Copy } from "lucide-react";
-import { getDesempenoAgente, postReporteIAGemini } from "../../api/desempeno/desempeno"; // <-- ajusta la ruta si difiere
+import { Download, Printer, RefreshCw, AlertCircle, Sparkles, Copy, Lock } from "lucide-react";
+import { getDesempenoAgente, postReporteIAGemini } from "../../api/desempeno/desempeno";
+
+// 1. IMPORTAR EL MODAL SAAS
+// Asegúrate de que la ruta sea correcta según tu estructura de carpetas
+import SaaSModal from "../../components/SaaSModal";
 
 /**
  * Util: convierte el payload de la API a un CSV descargable.
@@ -91,10 +95,14 @@ export default function Desempeno() {
   const [iaError, setIaError] = useState(null);
   const [iaText, setIaText] = useState("");
 
+  // 2. ESTADOS PARA EL MODAL SAAS
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
+
   const reportRef = useRef(null);
 
   const auth = useMemo(() => JSON.parse(localStorage.getItem("authData") || "{}"), []);
-  const agenteId = auth?.user?.id; // ajusta si tu auth guarda otro campo
+  const agenteId = auth?.user?.id; 
 
   const fetchData = async () => {
     if (!agenteId) return;
@@ -105,19 +113,26 @@ export default function Desempeno() {
       setData(res.data);
     } catch (e) {
       console.error(e);
-      setErr(e?.response?.data?.message || "No se pudo cargar el reporte");
+      
+      // 3. INTERCEPCIÓN DEL ERROR 403 (Plan insuficiente)
+      if (e.response && e.response.status === 403) {
+        const msg = e.response.data?.detail || e.response.data?.message || "Esta función requiere un plan superior.";
+        setUpgradeMessage(msg);
+        setShowUpgradeModal(true); // Activa el modal
+        setErr("Acceso restringido por nivel de suscripción."); // Mensaje para la UI de fondo
+      } else {
+        setErr(e?.response?.data?.message || "No se pudo cargar el reporte");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // arma el payload para IA a partir del JSON cargado
   const buildIAPayload = (report) => {
     const tot = report?.totales || {};
     const est = report?.estados || {};
     const kpis = report?.kpis || {};
 
-    // Reducimos estados -> counts
     const estadoCounts = Object.entries(est).reduce((acc, [k, v]) => {
       acc[k] = v?.count ?? 0;
       return acc;
@@ -138,6 +153,8 @@ export default function Desempeno() {
 
   const pedirReporteIA = async () => {
     if (!data) return;
+    
+    // VALIDACIÓN ADICIONAL PARA IA (Opcional: si el botón está visible pero el backend bloquea)
     setIaLoading(true);
     setIaError(null);
     setIaText("");
@@ -145,7 +162,6 @@ export default function Desempeno() {
       const payload = buildIAPayload(data);
       const res = await postReporteIAGemini(payload);
 
-      // Acepta varias formas de respuesta:
       const texto =
         res?.data?.reporte ||
         res?.data?.reporte_ia ||
@@ -161,12 +177,19 @@ export default function Desempeno() {
       }
     } catch (e) {
       console.error(e);
-      const apiMsg =
-        e?.response?.data?.detail ||
-        e?.response?.data?.message ||
-        e?.message ||
-        "Error al solicitar el reporte de IA";
-      setIaError(apiMsg);
+      // Intercepción SaaS también aquí para la IA
+      if (e.response && e.response.status === 403) {
+          setUpgradeMessage("La generación de reportes con IA es exclusiva de planes avanzados.");
+          setShowUpgradeModal(true);
+          setIaError("Función Premium Bloqueada");
+      } else {
+          const apiMsg =
+            e?.response?.data?.detail ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Error al solicitar el reporte de IA";
+          setIaError(apiMsg);
+      }
     } finally {
       setIaLoading(false);
     }
@@ -197,7 +220,17 @@ export default function Desempeno() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 relative">
+      
+      {/* 4. RENDERIZAR COMPONENTE DEL MODAL SAAS */}
+      <SaaSModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)}
+        title="Módulo Premium"
+        message={upgradeMessage}
+        actionLabel="Ver Planes y Precios"
+      />
+
       {/* Encabezado */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -238,16 +271,29 @@ export default function Desempeno() {
         </div>
       </div>
 
-      {/* Estados de carga / error */}
-      {loading && <div className="text-stone-600">Cargando…</div>}
+      {/* Estados de carga */}
+      {loading && <div className="text-stone-600">Cargando métricas...</div>}
+      
+      {/* ESTADO DE ERROR / SAAS BLOQUEADO */}
       {err && (
-        <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-xl p-4">
-          <AlertCircle className="w-5 h-5" />
-          <span>{err}</span>
+        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-stone-200 rounded-2xl bg-stone-50">
+             <div className="p-4 bg-stone-100 rounded-full mb-4">
+                {err.includes("Acceso restringido") ? <Lock className="w-8 h-8 text-orange-500" /> : <AlertCircle className="w-8 h-8 text-red-500" />}
+             </div>
+             <h3 className="text-lg font-semibold text-stone-900">No se pudo cargar el reporte</h3>
+             <p className="text-stone-500 mt-1 px-4 text-center">{err}</p>
+             {err.includes("Acceso restringido") && (
+                <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="mt-4 text-sm font-bold text-indigo-600 hover:underline"
+                >
+                    Ver opciones de mejora
+                </button>
+             )}
         </div>
       )}
 
-      {/* Contenido del reporte */}
+      {/* Contenido del reporte (Solo si data existe) */}
       {data && (
         <div ref={reportRef} className="space-y-6">
           {/* KPIs */}

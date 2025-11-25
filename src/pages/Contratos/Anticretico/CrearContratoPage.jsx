@@ -2,18 +2,19 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   crearContratoAnticretico,
-  getAgentes, // ⬅️ CAMBIADO: Usamos getAgentes
+  getAgentes,
   getInmueblesDisponibles 
 } from '../../../api/contrato/contrato';
-import { useAuth } from '../../../hooks/useAuth'; // ⬅️ 1. Importamos el hook de Auth
+import { useAuth } from '../../../hooks/useAuth';
 import { Loader2, Check, ShieldAlert, PlusCircle, UserCheck } from 'lucide-react';
 
-// Este es el formulario de creación
+// 1. IMPORTAR EL MODAL DE SAAS (Asegúrate de que la ruta sea correcta)
+import SaaSModal from '../../../components/SaaSModal';
+
 const CrearContratoPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // ⬅️ 2. Obtenemos el usuario logueado
+  const { user } = useAuth();
 
-  // 3. Verificamos si es Admin (basado en CreateInmueble.jsx)
   const isAdmin = useMemo(() => 
     user?.grupo_nombre?.toLowerCase() === 'administrador', 
     [user]
@@ -27,10 +28,10 @@ const CrearContratoPage = () => {
   // Estado del formulario
   const [formData, setFormData] = useState({
     inmueble_id: '',
-    agente_id: '', // Se autocompletará si es agente
+    agente_id: '',
     ciudad: 'Santa Cruz',
     fecha_contrato: new Date().toISOString().split('T')[0],
-    cliente_nombre: '', // Este es el Anticresista
+    cliente_nombre: '', 
     cliente_ci: '',
     cliente_domicilio: '',
     monto: '',
@@ -42,20 +43,21 @@ const CrearContratoPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // 4. Cargar datos para los dropdowns
+  // 2. ESTADO PARA EL MODAL SAAS
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
+
   useEffect(() => {
     const loadDropdownData = async () => {
       setLoadingDropdowns(true);
       try {
-        // Solo llamamos a las APIs que necesitamos
         const promesas = [getInmueblesDisponibles()];
         if (isAdmin) {
-          promesas.push(getAgentes()); // El Admin necesita la lista de agentes
+          promesas.push(getAgentes());
         }
         
         const [resInmuebles, resAgentes] = await Promise.all(promesas);
         
-        // ⬅️ CAMBIADO: La API de agentes devuelve { values: [...] }
         if (resAgentes) {
           setAgentes(resAgentes.data.values || []); 
         }
@@ -68,21 +70,20 @@ const CrearContratoPage = () => {
       }
     };
     loadDropdownData();
-  }, [isAdmin]); // Se recarga si cambia el rol del usuario
+  }, [isAdmin]);
 
-  // 5. Autocompletar el agente_id si el usuario NO es Admin
   useEffect(() => {
     if (user && !isAdmin) {
       setFormData(prev => ({ ...prev, agente_id: user.id }));
     }
   }, [user, isAdmin]);
 
-  // 6. Filtros (ya no se usa agentesFiltrados, pero lo dejamos por si acaso)
-  const agentesFiltrados = useMemo(() => agentes, [agentes]);
   const inmueblesFiltrados = useMemo(() => 
     inmuebles.filter(i => i.tipo_operacion === 'anticretico' && i.estado === 'aprobado'), 
     [inmuebles]
   );
+
+  const agentesFiltrados = useMemo(() => agentes, [agentes]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,7 +93,6 @@ const CrearContratoPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validación extra
     if (!formData.agente_id) {
         setError("No se pudo identificar al agente. Recarga la página.");
         return;
@@ -107,25 +107,41 @@ const CrearContratoPage = () => {
       setSuccess(`¡Contrato (ID: ${response.data.id}) creado exitosamente! Estado: ${response.data.estado}.`);
       setFormData({
         inmueble_id: '', 
-        agente_id: isAdmin ? '' : user.id, // Resetea el form
+        agente_id: isAdmin ? '' : user.id,
         ciudad: 'Santa Cruz',
         fecha_contrato: new Date().toISOString().split('T')[0],
         cliente_nombre: '', cliente_ci: '', cliente_domicilio: '',
         monto: '', comision_porcentaje: '5', vigencia_meses: '12',
       });
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Error desconocido al crear el contrato.');
+      // 3. INTERCEPTAR ERROR SAAS (403)
+      if (err.response && err.response.status === 403) {
+          const msg = err.response.data?.error || err.response.data?.message || "Acceso denegado.";
+          setUpgradeMessage(msg);
+          setShowUpgradeModal(true); // <--- ABRIR MODAL
+      } else {
+          setError(err.response?.data?.error || err.message || 'Error desconocido al crear el contrato.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper de estilos de Tailwind
   const inputClass = "mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100";
   const labelClass = "block text-sm font-medium text-gray-700";
 
   return (
-    <div className="p-4 md:p-6 min-h-screen bg-gray-50">
+    <div className="p-4 md:p-6 min-h-screen bg-gray-50 relative">
+      
+      {/* 4. MODAL SAAS */}
+      <SaaSModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)}
+        title="Función Premium"
+        message={upgradeMessage}
+        actionLabel="Actualizar Plan"
+      />
+
       <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
         <PlusCircle className="w-7 h-7" />
         Crear Nuevo Contrato de Anticrético
@@ -141,7 +157,6 @@ const CrearContratoPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* --- Selección de Inmueble y Agente --- */}
             <div>
               <label htmlFor="inmueble_id" className={labelClass}>
                 Inmueble Disponible (Anticrético) <span className="text-red-500">*</span>
@@ -159,9 +174,7 @@ const CrearContratoPage = () => {
               )}
             </div>
             
-            {/* --- 7. Lógica Condicional para el Agente --- */}
             {isAdmin ? (
-              // Si es Admin, muestra el dropdown
               <div>
                 <label htmlFor="agente_id" className={labelClass}>
                   Agente que gestiona <span className="text-red-500">*</span>
@@ -176,7 +189,6 @@ const CrearContratoPage = () => {
                 </select>
               </div>
             ) : (
-              // Si es Agente, muestra su nombre (deshabilitado)
               <div>
                 <label htmlFor="agente_id" className={labelClass}>
                   Agente que gestiona
@@ -188,7 +200,6 @@ const CrearContratoPage = () => {
               </div>
             )}
 
-            {/* --- Datos del Anticresista (Cliente) --- */}
             <div className="md:col-span-2 mt-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Datos del Anticresista (Cliente)</h3>
             </div>
@@ -205,7 +216,6 @@ const CrearContratoPage = () => {
               <input type="text" name="cliente_domicilio" id="cliente_domicilio" value={formData.cliente_domicilio} onChange={handleChange} className={inputClass} />
             </div>
 
-            {/* --- Datos del Contrato --- */}
             <div className="md:col-span-2 mt-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Datos del Contrato</h3>
             </div>
@@ -232,7 +242,6 @@ const CrearContratoPage = () => {
           </div>
         )}
 
-        {/* --- Botón de Envío y Mensajes --- */}
         <div className="mt-6 pt-4 border-t border-gray-200">
           <button 
             type="submit" 

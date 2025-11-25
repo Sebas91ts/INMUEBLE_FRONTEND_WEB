@@ -18,7 +18,8 @@ import {
   Calendar,
   Bath,
   Bed,
-  Square
+  Square,
+  AlertCircle // Icono para el mensaje de error
 } from 'lucide-react'
 
 // 🔧 Ajusta imágenes para mejor calidad según el proveedor
@@ -57,6 +58,9 @@ export default function PropiedadDetail() {
   const [inmueble, setInmueble] = useState(null)
   const [loading, setLoading] = useState(true)
   const [currentPhoto, setCurrentPhoto] = useState(0)
+  
+  // Estado para manejar errores al contactar (Ej: Agente sin plan)
+  const [chatError, setChatError] = useState(null)
 
   const { user } = useAuth()
   const { agregarChat } = useContext(ChatContext)
@@ -114,6 +118,7 @@ export default function PropiedadDetail() {
   // 📨 Crear chat con el agente
   const handleChat = async () => {
     if (!user) return
+    setChatError(null); // Limpiar errores previos
 
     try {
       const result = await executeChat({
@@ -128,6 +133,20 @@ export default function PropiedadDetail() {
       navigate(`/home/chat?chatId=${chat.id}`)
     } catch (error) {
       console.error('Error al crear chat:', error)
+      
+      // Lógica para manejar el error SaaS del lado del CLIENTE
+      if (error.response) {
+          const status = error.response.status;
+          const msg = error.response.data?.message || error.response.data?.detail || "";
+          
+          if (status === 403 || msg.includes("Límite")) {
+              setChatError("Lo sentimos, este agente no puede recibir nuevos mensajes en este momento (Límite de plan alcanzado).");
+          } else {
+              setChatError("Ocurrió un error al intentar contactar. Por favor intenta más tarde.");
+          }
+      } else {
+          setChatError("Error de conexión.");
+      }
     }
   }
 
@@ -356,12 +375,15 @@ export default function PropiedadDetail() {
               </div>
             )}
           </div>
-{inmueble.tipo_operacion === "venta" && (
-  <div className="mt-6">
-    <BotonComprar inmuebleId={inmueble.id} />
-  </div>
-)}
-          {/* TARJETA DE CONTACTO (Antes Sidebar) - Ahora de ancho completo al final */}
+
+          {/* BOTÓN DE PAGO (Si es venta) */}
+          {inmueble.tipo_operacion === "venta" && (
+            <div className="mt-0">
+              <BotonComprar inmuebleId={inmueble.id} />
+            </div>
+          )}
+
+          {/* TARJETA DE CONTACTO (Sticky/Bottom) */}
           <div className='bg-white rounded-2xl shadow-lg p-6 sticky bottom-4 z-10 md:static border-t md:border-t-0 border-blue-200'>
             <h3 className='text-2xl font-bold text-gray-900 mb-4'>
               ¡Contáctanos! 💬
@@ -386,6 +408,14 @@ export default function PropiedadDetail() {
                 {chatLoading ? 'Abriendo chat...' : 'Hablar con el Agente'}
               </span>
             </button>
+
+             {/* MENSAJE DE ERROR SI EL AGENTE ESTÁ BLOQUEADO POR SAAS (CLIENTE SIDE) */}
+             {chatError && (
+                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 text-orange-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <span>{chatError}</span>
+                </div>
+            )}
 
             {/* Mensaje de Agente no Asignado */}
             {!agenteId && (

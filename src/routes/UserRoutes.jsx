@@ -30,6 +30,7 @@ import SeleccionTipoContrato from '../routes/SeleccionTipoContrato';
 import PaginaGestionContratos from '../pages/Contratos/ContratoFinalPage'
 import Notificaciones from '../pages/Alertas/Notificaciones' // <<< AÑADIR ESTA LÍNEA >>>
 import MapaInteractivo from '../pages/MapaInteractivo/MapaInteractivo'; 
+import SuccessPage from '../pages/Suscripcion/SuccessPage'
 import { Map } from 'lucide-react';
 export default function UserRoutes() {
   return (
@@ -59,6 +60,7 @@ export default function UserRoutes() {
                   </PrivilegedRoute>
               }
           />
+          <Route path="suscripcion/exito" element={<SuccessPage />} />
 
           {/* --- ZONA PRIVADA Y PROTEGIDA --- */}
           {/* Estas rutas requieren que el usuario inicie sesión y/o tenga privilegios */}

@@ -1,10 +1,12 @@
-// src/pages/ContratosAlquiler/ContratoAlquilerForm.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { generarContratoAlquiler } from "../../api/contratos/alquiler";
 import { FileText, ArrowLeft, Loader2, Home, User, FileDigit, Calendar, Shield, AlertTriangle, ChevronDown } from "lucide-react";
-import instancia from "../../api/axios"; // para obtener inmuebles
-import { useAuth } from "../../hooks/useAuth"; // ❗️ IMPORTANTE: Necesitas esto para el agente_id
+import instancia from "../../api/axios"; 
+import { useAuth } from "../../hooks/useAuth";
+
+// 1. IMPORTAR EL MODAL SAAS
+import SaaSModal from "../../components/SaaSModal";
 
 // --- Componentes de UI Reutilizables ---
 const inputClass = "w-full rounded-lg border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed";
@@ -37,11 +39,15 @@ const DateInput = ({ label, ...props }) => (
 // --- Componente Principal ---
 export default function ContratoAlquilerForm() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // ❗️ Obtén el usuario logueado
+  const { user } = useAuth(); 
   const [inmuebles, setInmuebles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingInmuebles, setLoadingInmuebles] = useState(true);
   const [error, setError] = useState("");
+
+  // 2. ESTADO PARA EL MODAL SAAS
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
 
   const [formData, setFormData] = useState({
     inmueble_id: "",
@@ -56,7 +62,6 @@ export default function ContratoAlquilerForm() {
     ciudad: "Santa Cruz",
   });
 
- // 🔹 Cargar inmuebles disponibles
   useEffect(() => {
     const fetchInmuebles = async () => {
       setLoadingInmuebles(true);
@@ -64,8 +69,6 @@ export default function ContratoAlquilerForm() {
         const res = await instancia.get("/inmueble/listar_inmuebles");
         const data = res.data?.values?.inmuebles || [];
         
-        // ❗️ FILTRO MODIFICADO (igual al V1):
-        // Ahora solo filtra por "disponible", sin importar si es venta o alquiler.
         const disponibles = data.filter(
           (i) => i.anuncio?.estado === "disponible"
         );
@@ -90,7 +93,7 @@ export default function ContratoAlquilerForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Limpia errores antiguos
+    setError(""); 
 
     if (!formData.inmueble_id) {
       setError("Selecciona un inmueble antes de generar el contrato.");
@@ -104,15 +107,14 @@ export default function ContratoAlquilerForm() {
 
     setLoading(true);
     try {
-      // ⚙️ Adaptar datos a lo que espera el backend
       const payload = {
-        agente_id: user.id, // ❗️ USA EL ID DEL USUARIO LOGUEADO
+        agente_id: user.id,
         inmueble_id: formData.inmueble_id,
         arrendatario_nombre: formData.arrendatario_nombre,
         arrendatario_ci: formData.arrendatario_ci,
         arrendatario_domicilio: formData.arrendatario_domicilio,
         monto_alquiler: formData.monto,
-        monto_garantia: formData.garantia || "0", // Enviar 0 si está vacío
+        monto_garantia: formData.garantia || "0", 
         vigencia_meses: formData.vigencia_meses,
         fecha_inicio: formData.fecha_inicio,
         fecha_fin: formData.fecha_fin,
@@ -121,20 +123,10 @@ export default function ContratoAlquilerForm() {
 
       const res = await generarContratoAlquiler(payload);
 
-      // ✅ --- LA SOLUCIÓN "A PRUEBA de BALAS" ---
-      // 1. Verificar respuesta exitosa
       if (res.data?.status === 1 && res.data?.values?.pdf_url) {
-        
-        // 2. El backend (Django) DEBE enviar la URL absoluta y completa
-        // (ej: https://api.inmobiliaria.com/media/contrato_1.pdf)
         const pdfUrl = res.data.values.pdf_url;
-
-        // 3. Simplemente abre la URL que el backend te dio.
-        //    ¡YA NO SE HARCODEA "127.0.0.1:8000"!
         window.open(pdfUrl, "_blank");
-        
-        // 4. Navega de vuelta
-        navigate("/home/contratos-alquiler"); // ❗️Asegúrate que esta ruta sea correcta
+        navigate("/home/contratos-alquiler"); 
 
       } else {
         console.error("Respuesta inesperada:", res.data);
@@ -142,17 +134,35 @@ export default function ContratoAlquilerForm() {
       }
     } catch (error) {
       console.error("Error generando contrato:", error.response || error);
-      setError(
-        error.response?.data?.message ||
-        "Ocurrió un error al generar el contrato."
-      );
+      
+      // 3. INTERCEPTAR ERROR SAAS (403)
+      if (error.response && error.response.status === 403) {
+          const msg = error.response.data?.error || error.response.data?.message || "Acceso denegado.";
+          setUpgradeMessage(msg);
+          setShowUpgradeModal(true); // <--- ABRIR MODAL
+      } else {
+          setError(
+            error.response?.data?.message ||
+            "Ocurrió un error al generar el contrato."
+          );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-4">
+    <div className="min-h-screen bg-gray-100 py-10 px-4 relative">
+      
+      {/* 4. MODAL SAAS */}
+      <SaaSModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)}
+        title="Función Premium"
+        message={upgradeMessage}
+        actionLabel="Actualizar Plan"
+      />
+
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -300,7 +310,7 @@ export default function ContratoAlquilerForm() {
             </div>
           </fieldset>
 
-           <TextInput
+            <TextInput
               label="Ciudad (lugar de firma)"
               type="text"
               name="ciudad"

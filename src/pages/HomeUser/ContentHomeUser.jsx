@@ -1,5 +1,5 @@
-// src/pages/HomeUser/ContentHomeUser.jsx
 import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   MapPin,
@@ -8,12 +8,49 @@ import {
   Square,
   Search,
   Check,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
+
+// 1. IMPORTAR API
+import { getPlanes, iniciarPagoSuscripcion, getMiSuscripcion } from "../../api/suscripciones";
+import { useAuth } from "../../hooks/useAuth"; 
 
 export default function Home() {
   const [busquedaNLP, setBusquedaNLP] = useState("");
+  const [planesBackend, setPlanesBackend] = useState([]);
+  const [loadingPago, setLoadingPago] = useState(null); 
+  
+  // 2. ESTADO PARA GUARDAR TU SUSCRIPCIÓN ACTUAL
+  const [miSuscripcion, setMiSuscripcion] = useState(null); 
+
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth(); 
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        // Cargar Planes
+        const resPlanes = await getPlanes();
+        if (resPlanes.status === 1 && resPlanes.values && resPlanes.values.length > 0) {
+          setPlanesBackend(resPlanes.values);
+        }
+
+        // 3. CARGAR MI SUSCRIPCIÓN (Solo si estoy logueado)
+        if (isAuthenticated) {
+            const resSub = await getMiSuscripcion();
+            // Si status es 1 y hay valores, significa que tengo suscripción
+            if (resSub.status === 1 && resSub.values) {
+                setMiSuscripcion(resSub.values); 
+                // resSub.values tendrá: { plan: 2, estado: 'activa', ... }
+            }
+        }
+
+      } catch (error) {
+        console.log("Error cargando datos iniciales");
+      }
+    };
+    cargarDatos();
+  }, [isAuthenticated]);
 
   const handleBusqueda = (e) => {
     e.preventDefault();
@@ -22,8 +59,33 @@ export default function Home() {
     }
   };
 
+  const handleSubscribe = async (plan) => {
+    if (!plan.id_backend) {
+       navigate("/home/registro/agente");
+       return;
+    }
+    if (!isAuthenticated) {
+      navigate("/login", { state: { plan_seleccionado: plan } });
+      return;
+    }
+    try {
+      setLoadingPago(plan.id_backend);
+      const res = await iniciarPagoSuscripcion(plan.id_backend);
+      if (res.status === 1 && res.values.url_checkout) {
+        window.location.href = res.values.url_checkout;
+      } else {
+        alert("Error al iniciar el pago: " + (res.message || "Intente nuevamente"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error de conexión con la pasarela de pagos.");
+    } finally {
+      setLoadingPago(null);
+    }
+  };
+
+  // ... (featuredProperties se queda igual) ...
   const featuredProperties = [
-    // ... (sin cambios)
     {
       idReal: null,
       title: "Villa Moderna en la Costa",
@@ -59,73 +121,40 @@ export default function Home() {
     },
   ];
 
-  const pricingPlans = [
-    // ... (sin cambios)
-    {
-      name: "Agente Individual",
-      price: "$49",
-      frequency: "/mes",
-      description:
-        "Perfecto para agentes que empiezan y quieren máxima visibilidad.",
-      features: [
-        "Hasta 10 propiedades listadas",
-        "Dashboard de agente",
-        "Soporte por email",
-      ],
-      cta: "Empezar Ahora",
-      href: "/home/registro/agente",
-      isFeatured: false,
-    },
-    {
-      name: "Agencia Pro",
-      price: "$199",
-      frequency: "/mes",
-      description: "La solución ideal para agencias en crecimiento.",
-      features: [
-        "Propiedades ilimitadas",
-        "Dashboard de agencia (5 usuarios)",
-        "Reportes avanzados",
-        "Soporte prioritario 24/7",
-      ],
-      cta: "Elegir Plan Pro",
-      href: "/home/registro/agencia-pro",
-      isFeatured: true,
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      frequency: "",
-      description:
-        "Para grandes inmobiliarias con necesidades y volumen a medida.",
-      features: [
-        "Todo lo de Pro",
-        "Integraciones API",
-        "Gestor de cuenta dedicado",
-        "Marca blanca",
-      ],
-      cta: "Contactar Ventas",
-      href: "/home/agentes-contacto",
-      isFeatured: false,
-    },
-  ];
+  const planesAMostrar = planesBackend.length > 0
+    ? planesBackend.map(p => ({
+        id_backend: p.id,
+        name: p.nombre,
+        price: p.precio == 0 ? "Gratis" : `$${p.precio}`,
+        frequency: "/mes",
+        description: p.descripcion || "Plan ideal para empezar.",
+        features: [
+          `${p.limite_inmuebles} Propiedades`,
+          p.permite_alertas ? "Alertas Automáticas ✅" : "Sin Alertas",
+          p.permite_reportes ? "Reportes con IA ✅" : "Reportes Básicos",
+          p.permite_destacados ? "Propiedades Destacadas" : "Visibilidad Estándar"
+        ],
+        cta: p.precio == 0 ? "Empezar Gratis" : "Suscribirse",
+        isFeatured: p.nombre.toLowerCase().includes("pro") 
+      }))
+    : [ /* ... tus planes estáticos ... */ ];
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Sección Hero (sin cambios) */}
+      
+      {/* Sección Hero */}
       <section
         className="relative flex min-h-screen items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat px-4 py-20"
         style={{
           backgroundImage: `linear-gradient(rgba(20, 20, 22, 0.6), rgba(20, 20, 22, 0.6)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')`,
         }}
       >
-        {/* ... (contenido hero sin cambios) ... */}
         <div className="container mx-auto text-center">
           <h1 className="mb-4 text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl text-balance">
             Tu nuevo hogar te espera
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-stone-200 sm:text-xl text-pretty">
-            Usa nuestro buscador inteligente para describir la propiedad de tus
-            sueños.
+            Usa nuestro buscador inteligente para describir la propiedad de tus sueños.
           </p>
           <div className="mx-auto max-w-3xl rounded-xl border border-stone-200 bg-white p-6 shadow-xl md:p-8">
             <form onSubmit={handleBusqueda} className="flex flex-col gap-4">
@@ -177,9 +206,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Properties Section (sin cambios) */}
+      {/* Featured Properties Section */}
       <section className="py-20 px-4 bg-white">
-        {/* ... (contenido de propiedades sin cambios) ... */}
         <div className="container mx-auto">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -264,87 +292,130 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- SECCIÓN DE PLANES MODIFICADA --- */}
-      <section className="py-20 px-4 bg-stone-50">
+      {/* --- SECCIÓN DE PLANES --- */}
+      <section className="py-20 px-4 bg-stone-50" id="planes">
         <div className="container mx-auto">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
               Planes para Agentes y Agencias
             </h2>
-            <p className="mx-auto max-w-2xl text-lg text-stone-600">
-              Elige la solución que mejor se adapta a tus necesidades para
-              vender más rápido.
-            </p>
+            
+            {/* 4. MENSAJE SI YA TIENE PLAN */}
+            {miSuscripcion && miSuscripcion.estado === 'activa' && (
+                <div className="mt-4 inline-block rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-800">
+                    Tu suscripción está activa hasta el {new Date(miSuscripcion.fecha_fin).toLocaleDateString()}
+                </div>
+            )}
           </div>
 
           <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.name}
-                // --- 1. AÑADIDO 'group' Y 'hover:' AL BORDE ---
-                className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
-                  plan.isFeatured
-                    ? "border-2 border-orange-500" // El destacado lo mantiene por defecto
-                    : "border-stone-200"
-                } hover:border-2 hover:border-orange-500`} // Todas las cards lo ganan en hover
-              >
-                {plan.isFeatured && (
-                  <div className="absolute top-0 -translate-y-1/2 rounded-full bg-orange-500 px-4 py-1 text-sm font-semibold text-white shadow-md left-1/2 -translate-x-1/2">
-                    Más Popular
-                  </div>
-                )}
+            {planesAMostrar.map((plan, index) => {
+              const esMiPlan = miSuscripcion && miSuscripcion.plan === plan.id_backend && miSuscripcion.estado === 'activa';
 
-                <div className="mb-6">
-                  {/* --- 2. AÑADIDO 'group-hover:' AL TÍTULO --- */}
-                  <h3 className="text-2xl font-semibold text-stone-900 transition-colors group-hover:text-orange-600">
-                    {plan.name}
-                  </h3>
-                  <p className="mt-2 text-stone-600">{plan.description}</p>
-                </div>
-
-                <div className="mb-6">
-                  <span className="text-5xl font-bold text-stone-900">
-                    {plan.price}
-                  </span>
-                  {plan.frequency && (
-                    <span className="ml-1 text-lg text-stone-500">
-                      {plan.frequency}
-                    </span>
+              return (
+                <div
+                  key={index}
+                  className={`group relative flex flex-col rounded-lg border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
+                    esMiPlan 
+                        ? "border-2 border-green-500 ring-4 ring-green-50"
+                        : plan.isFeatured
+                            ? "border-2 border-orange-500"
+                            : "border-stone-200 hover:border-orange-500"
+                  }`}
+                >
+                  {/* ETIQUETA PLAN ACTUAL (Corregida para que no se corte) */}
+                  {esMiPlan && (
+                    <div className="mb-4 flex justify-center">
+                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-green-700">
+                        Tu Plan Actual
+                      </span>
+                    </div>
                   )}
-                </div>
+                  
+                  {/* ETIQUETA POPULAR (Solo si no es mi plan) */}
+                  {!esMiPlan && plan.isFeatured && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 transform">
+                      <span className="rounded-full bg-orange-500 px-4 py-1 text-sm font-semibold text-white shadow-md">
+                        Más Popular
+                      </span>
+                    </div>
+                  )}
 
-                <ul className="mb-8 space-y-3 text-stone-600">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-3">
-                      <Check className="h-5 w-5 flex-shrink-0 text-orange-500" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <div className="mb-6">
+                    <h3 className="text-2xl font-semibold text-stone-900">
+                      {plan.name}
+                    </h3>
+                    <p className="mt-2 text-stone-600">{plan.description}</p>
+                  </div>
 
-                <div className="mt-auto">
-                  <Link
-                    to={plan.href}
-                    // --- 3. AÑADIDO 'group-hover:' AL BOTÓN (para los no-destacados) ---
-                    className={`inline-flex w-full items-center justify-center rounded-md px-6 py-3 text-base font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
-                      plan.isFeatured
-                        ? "bg-orange-600 text-white hover:bg-orange-500" // Botón destacado
-                        : "bg-white text-orange-600 border border-orange-600 hover:bg-orange-50 group-hover:bg-orange-600 group-hover:text-white" // Botón normal + efecto group-hover
-                    }`}
-                  >
-                    {plan.cta}
-                  </Link>
+                  <div className="mb-6">
+                    <span className="text-5xl font-bold text-stone-900">
+                      {plan.price}
+                    </span>
+                    {plan.frequency && (
+                      <span className="ml-1 text-lg text-stone-500">
+                        {plan.frequency}
+                      </span>
+                    )}
+                  </div>
+
+                  <ul className="mb-8 space-y-3 text-stone-600">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center gap-3">
+                        <Check className={`h-5 w-5 flex-shrink-0 ${esMiPlan ? 'text-green-500' : 'text-orange-500'}`} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-auto">
+                    {/* 6. LÓGICA DEL BOTÓN */}
+                    {esMiPlan ? (
+                        <button
+                            disabled
+                            className="inline-flex w-full items-center justify-center rounded-md bg-green-100 px-6 py-3 text-base font-semibold text-green-700 cursor-default"
+                        >
+                            Activo ✅
+                        </button>
+                    ) : (
+                        // Botón normal de suscripción
+                        plan.id_backend ? (
+                            <button
+                            onClick={() => handleSubscribe(plan)}
+                            disabled={loadingPago === plan.id_backend}
+                            className={`inline-flex w-full items-center justify-center rounded-md px-6 py-3 text-base font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-70 ${
+                                plan.isFeatured
+                                ? "bg-orange-600 text-white hover:bg-orange-500"
+                                : "bg-white text-orange-600 border border-orange-600 hover:bg-orange-50 group-hover:bg-orange-600 group-hover:text-white"
+                            }`}
+                            >
+                            {loadingPago === plan.id_backend ? (
+                                <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando...
+                                </>
+                            ) : (
+                                plan.cta
+                            )}
+                            </button>
+                        ) : (
+                            <Link
+                            to={plan.href}
+                            className="inline-flex w-full items-center justify-center rounded-md border border-orange-600 bg-white px-6 py-3 text-base font-semibold text-orange-600 transition-colors hover:bg-orange-50"
+                            >
+                            {plan.cta}
+                            </Link>
+                        )
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
-      {/* --- FIN DE LA SECCIÓN MODIFICADA --- */}
 
-      {/* CTA Section (sin cambios) */}
+      {/* CTA Section */}
       <section className="bg-stone-900 px-4 py-20 text-white">
-        {/* ... (contenido cta sin cambios) ... */}
         <div className="container mx-auto text-center">
           <h2 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl text-balance">
             ¿Listo para encontrar tu hogar ideal?

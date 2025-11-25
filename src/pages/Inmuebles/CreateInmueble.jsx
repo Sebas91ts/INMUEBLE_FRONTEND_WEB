@@ -1,717 +1,353 @@
-// src/pages/Inmuebles/CreateInmueble.jsx
-import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  MapPin,
+  Bed,
+  Bath,
+  Square,
+  Search,
+  Check,
+  Loader2,
+  Crown,
+  ShieldCheck
+} from "lucide-react";
 
-import { listarTiposInmueble, crearInmueble } from "../../api/inmueble";
-import { uploadImageToCloudinary } from "../../api/uploader";
-import { useAuth } from "../../hooks/useAuth";
-import { getAgentes, getUsuarios } from "../../api/usuarios/usuarios";
+// Importaciones de API y Hooks
+import { getPlanes, iniciarPagoSuscripcion, getMiSuscripcion } from "../../api/suscripciones";
+import { useAuth } from "../../hooks/useAuth"; 
 
-// ============ MapPicker embebido (sin buscador) ============
-function ClickHandler({ onPick }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng);
-    },
-  });
-  return null;
-}
+export default function Home() {
+  const [busquedaNLP, setBusquedaNLP] = useState("");
+  const [planesBackend, setPlanesBackend] = useState([]);
+  const [loadingPago, setLoadingPago] = useState(null); 
+  
+  // Estado de suscripción
+  const [miSuscripcion, setMiSuscripcion] = useState(null); 
 
-function MapPicker({ value, onChange, height = 360 }) {
-  // 🗺️ Santa Cruz por defecto
-  const [pos, setPos] = useState(value || { lat: -17.7833, lng: -63.1821 });
-
-  useEffect(() => {
-    if (value?.lat && value?.lng) setPos(value);
-  }, [value]);
-
-  const round6 = (n) => Number(n.toFixed(6));
-  const handlePick = ({ lat, lng }) => {
-    const p = { lat: round6(lat), lng: round6(lng) };
-    setPos(p);
-    onChange?.(p);
-  };
-
-  const goToMyLocation = () => {
-    if (!navigator.geolocation) return alert("Tu navegador no soporta geolocalización");
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => handlePick({ lat: coords.latitude, lng: coords.longitude }),
-      (err) => alert("No pudimos obtener tu ubicación: " + err.message),
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
-    );
-  };
-
-  return (
-    <div className="w-full rounded-2xl border border-stone-200 bg-white overflow-hidden shadow-sm">
-      {/* Barra superior: solo Mi ubicación */}
-      <div className="flex justify-end p-3 bg-stone-50 border-b">
-        <button
-          type="button"
-          onClick={goToMyLocation}
-          className="px-4 py-2 rounded-lg border bg-blue-500 bg-blue-500 text-white hover:bg-stone-800 transition-colors"
-        >
-          📍 Mi ubicación
-        </button>
-      </div>
-
-      {/* Mapa */}
-      <MapContainer center={[pos.lat, pos.lng]} zoom={13} style={{ height }} className="w-full">
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
-        <Marker position={[pos.lat, pos.lng]} />
-        <ClickHandler onPick={handlePick} />
-      </MapContainer>
-
-      <div className="p-3 text-sm text-stone-600 bg-white">
-        Lat: <b>{pos.lat}</b> · Lng: <b>{pos.lng}</b> — Haz click en el mapa para mover el pin.
-      </div>
-    </div>
-  );
-}
-
-// ============ Página principal ============
-export default function CreateInmueble() {
-  const { user } = useAuth();
-  const isAdmin = String(user?.grupo_nombre || "").toLowerCase() === "administrador";
-
-  // formulario (strings para inputs; parseo al enviar)
-  const [form, setForm] = useState({
-    agente: "", // requerido si admin
-    cliente: "", // opcional
-    tipo_inmueble_id: "1",
-    titulo: "",
-    descripcion: "",
-    direccion: "",
-    ciudad: "Santa Cruz",
-    zona: "",
-    superficie: "0",
-    dormitorios: "0",
-    banos: "0", // se mapeará a ["baños"]
-    precio: "0",
-    tipo_operacion: "venta",
-    latitud: "-17.7833",
-    longitud: "-63.1821",
-  });
-
-  const [tipos, setTipos] = useState([]);
-  const [agentes, setAgentes] = useState([]); // [{id,label}]
-  const [clientes, setClientes] = useState([]); // [{id,label}]
-  const [err, setErr] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState(null);
-  const [ok, setOk] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  // subida de fotos (opcional)
-  const [items, setItems] = useState([]); // [{name,previewUrl,status,progress,urlFinal,_file}]
-  const [subiendo, setSubiendo] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth(); 
 
   useEffect(() => {
-    // Tipos de inmueble
-    listarTiposInmueble()
-      .then((arr) => {
-        const list = Array.isArray(arr) ? arr : arr?.values?.tipo_inmueble || [];
-        setTipos(list);
-        if (list.length && !form.tipo_inmueble_id) {
-          setForm((s) => ({ ...s, tipo_inmueble_id: String(list[0].id) }));
-        }
-      })
-      .catch(() => setTipos([]));
-
-    // Agentes & Usuarios (clientes)
-    (async () => {
+    const cargarDatos = async () => {
       try {
-        const [agtsRes, usersRes] = await Promise.all([getAgentes(), getUsuarios()]);
-        const arrAgts = agtsRes?.data?.values || agtsRes?.data || [];
-        const arrUsers =
-          usersRes?.data?.values?.usuarios || usersRes?.data?.values || usersRes?.data || [];
-
-        const agts = (Array.isArray(arrAgts) ? arrAgts : []).map((a) => ({
-          id: a.id,
-          label: a.nombre_completo || a.username || `Agente #${a.id}`,
-        }));
-
-        const clients = (Array.isArray(arrUsers) ? arrUsers : [])
-          .filter((u) => String(u.grupo_nombre || u.grupo?.nombre || "").toLowerCase() === "cliente")
-          .map((c) => ({
-            id: c.id,
-            label: c.nombre_completo || c.username || `Cliente #${c.id}`,
-          }));
-
-        setAgentes(agts);
-        setClientes(clients);
-      } catch {
-        setAgentes([]);
-        setClientes([]);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setForm((s) => ({ ...s, [name]: value }));
-  };
-
-  // fotos (opcional)
-  // fotos (opcional)
-  const onPickFiles = async (e) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
-
-    const nuevos = files.map((f) => ({
-      name: f.name,
-      previewUrl: URL.createObjectURL(f),
-      status: "subiendo",
-      progress: 0,
-      urlFinal: null,
-      _file: f,
-    }));
-    setItems((prev) => [...prev, ...nuevos]);
-
-    setSubiendo(true);
-    await Promise.all(
-      nuevos.map(async (it, idxLocal) => {
-        const idx = items.length + idxLocal;
-        try {
-          const url = await uploadImageToCloudinary(it._file, (p) => {
-            setItems((prev) => {
-              const copy = [...prev];
-              copy[idx] = { ...copy[idx], progress: p };
-              return copy;
-            });
-          });
-          setItems((prev) => {
-            const copy = [...prev];
-            copy[idx] = { ...copy[idx], status: "ok", progress: 100, urlFinal: url };
-            return copy;
-          });
-        } catch {
-          setItems((prev) => {
-            const copy = [...prev];
-            copy[idx] = { ...copy[idx], status: "error" };
-            return copy;
-          });
+        const resPlanes = await getPlanes();
+        if (resPlanes.status === 1 && resPlanes.values && resPlanes.values.length > 0) {
+          setPlanesBackend(resPlanes.values);
         }
-      })
-    );
-    setSubiendo(false);
-    e.target.value = "";
-  };
 
+        if (isAuthenticated) {
+            const resSub = await getMiSuscripcion();
+            if (resSub.status === 1 && resSub.values) {
+                setMiSuscripcion(resSub.values); 
+            }
+        }
+      } catch (error) {
+        console.log("Usando planes por defecto (backend offline o vacío)");
+      }
+    };
+    cargarDatos();
+  }, [isAuthenticated]);
 
-  const removeFoto = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-
-  const fotosUrls = useMemo(
-    () => items.filter((x) => x.status === "ok" && x.urlFinal).map((x) => x.urlFinal),
-    [items]
-  );
-
-  const stopWheel = (e) => e.currentTarget.blur();
-
-  // ===== Validaciones =====
-  const validations = () => {
-    const fe = {};
-    const req = (v) => String(v ?? "").trim().length > 0;
-
-    // Requeridos
-    if (isAdmin && !req(form.agente)) fe.agente = "Selecciona un agente.";
-    if (!req(form.tipo_inmueble_id)) fe.tipo_inmueble_id = "Selecciona tipo de inmueble.";
-    if (!req(form.titulo)) fe.titulo = "El título es obligatorio.";
-    if (!req(form.descripcion)) fe.descripcion = "La descripción es obligatoria.";
-    if (!req(form.direccion)) fe.direccion = "La dirección es obligatoria.";
-    if (!req(form.ciudad)) fe.ciudad = "La ciudad es obligatoria.";
-    if (!req(form.precio)) fe.precio = "El precio es obligatorio.";
-
-    // Números
-    const toInt = (s) =>
-      s === "" || s === null || s === undefined ? null : parseInt(s, 10);
-    const toFloat = (s) =>
-      s === "" || s === null || s === undefined ? null : parseFloat(s);
-
-    const superficie = toFloat(form.superficie);
-    const dormitorios = toInt(form.dormitorios);
-    const banos = toInt(form.banos);
-    const precio = toFloat(form.precio);
-    const lat = toFloat(form.latitud);
-    const lng = toFloat(form.longitud);
-
-    if (precio === null || isNaN(precio) || precio < 0) fe.precio = "Precio inválido (≥ 0).";
-    if (superficie !== null && (isNaN(superficie) || superficie < 0))
-      fe.superficie = "Superficie inválida (≥ 0).";
-    if (dormitorios !== null && (isNaN(dormitorios) || dormitorios < 0))
-      fe.dormitorios = "Dormitorios inválidos (entero ≥ 0).";
-    if (banos !== null && (isNaN(banos) || banos < 0))
-      fe.banos = "Baños inválidos (entero ≥ 0).";
-
-    if (lat === null || isNaN(lat) || lat < -90 || lat > 90)
-      fe.latitud = "Latitud inválida (-90 a 90).";
-    if (lng === null || isNaN(lng) || lng < -180 || lng > 180)
-      fe.longitud = "Longitud inválida (-180 a 180).";
-
-    return fe;
-  };
-
-  const disabledSubmit = saving || subiendo;
-
-  const submit = async (e) => {
+  const handleBusqueda = (e) => {
     e.preventDefault();
-    setErr(null);
-    setOk(null);
-    setFieldErrors(null);
-    setFieldErrors(null);
+    if (busquedaNLP.trim()) {
+      navigate(`/home/propiedades?busqueda=${encodeURIComponent(busquedaNLP)}`);
+    }
+  };
 
-    const fe = validations();
-    if (Object.keys(fe).length) {
-      setFieldErrors(fe);
-      setErr("Revisa los campos marcados.");
+  const handleSubscribe = async (plan) => {
+    if (!plan.id_backend) {
+       navigate("/home/registro/agente");
+       return;
+    }
+    if (!isAuthenticated) {
+      navigate("/login", { state: { plan_seleccionado: plan } });
       return;
     }
-
-    setSaving(true);
     try {
-      const toInt = (s) =>
-        s === "" || s === null || s === undefined ? null : parseInt(s, 10);
-      const toFloat = (s) =>
-        s === "" || s === null || s === undefined ? null : parseFloat(s);
-
-      const payload = {
-        ...(isAdmin && form.agente ? { agente: toInt(form.agente) } : {}),
-        ...(form.cliente ? { cliente: toInt(form.cliente) } : {}),
-        ...(isAdmin && form.agente ? { agente: toInt(form.agente) } : {}),
-        ...(form.cliente ? { cliente: toInt(form.cliente) } : {}),
-        tipo_inmueble_id: toInt(form.tipo_inmueble_id),
-        titulo: form.titulo.trim(),
-        descripcion: form.descripcion.trim(),
-        direccion: form.direccion.trim(),
-        ciudad: form.ciudad.trim(),
-        zona: form.zona.trim(),
-        superficie: toFloat(form.superficie),
-        dormitorios: toInt(form.dormitorios),
-        ["baños"]: toInt(form.banos), // backend espera 'baños'
-              // ["baños"]: toInt(form.banos), // backend espera 'baños'
-        precio: toFloat(form.precio),
-        tipo_operacion: form.tipo_operacion,
-        latitud: toFloat(form.latitud),
-        longitud: toFloat(form.longitud),
-        ...(fotosUrls.length ? { fotos_urls: fotosUrls } : {}),
-        ...(fotosUrls.length ? { fotos_urls: fotosUrls } : {}),
-      };
-
-      const res = await crearInmueble(payload);
-      setOk(res?.message ?? "Inmueble creado.");
-
-      // Limpieza suave (conservamos agente/cliente/tipo)
-      setItems([]);
-      setForm((s) => ({
-        ...s,
-        titulo: "",
-        descripcion: "",
-        direccion: "",
-        zona: "",
-        superficie: "0",
-        dormitorios: "0",
-        banos: "0",
-        precio: "0",
-      }));
-    } catch (e2) {
-      const apiMsg = e2?.response?.data?.message;
-      const apiFieldErrors = e2?.response?.data?.values;
-      setErr(apiMsg ?? e2?.message ?? "Error al crear inmueble");
-      if (apiFieldErrors && typeof apiFieldErrors === "object") setFieldErrors(apiFieldErrors);
-      setSaving(false);
+      setLoadingPago(plan.id_backend);
+      const res = await iniciarPagoSuscripcion(plan.id_backend);
+      if (res.status === 1 && res.values.url_checkout) {
+        window.location.href = res.values.url_checkout;
+      } else {
+        alert("Error al iniciar el pago: " + (res.message || "Intente nuevamente"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error de conexión con la pasarela de pagos.");
+    } finally {
+      setLoadingPago(null);
     }
   };
 
+  const featuredProperties = [
+    {
+      idReal: null,
+      title: "Villa Moderna en la Costa",
+      location: "Marbella, España",
+      price: "€2,500,000",
+      beds: 4,
+      baths: 3,
+      area: "350 m²",
+      image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1600&auto=format&fit=crop",
+    },
+    {
+      idReal: null,
+      title: "Apartamento Céntrico",
+      location: "Madrid, España",
+      price: "€850,000",
+      beds: 3,
+      baths: 2,
+      area: "180 m²",
+      image: "https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1600&auto=format&fit=crop",
+    },
+    {
+      idReal: null,
+      title: "Casa Colonial Restaurada",
+      location: "Barcelona, España",
+      price: "€1,200,000",
+      beds: 5,
+      baths: 4,
+      area: "420 m²",
+      image: "https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1600&auto=format&fit=crop",
+    },
+  ];
+
+  // Mapeo de planes
+  const planesAMostrar = planesBackend.length > 0
+    ? planesBackend.map(p => ({
+        id_backend: p.id,
+        name: p.nombre,
+        price: p.precio == 0 ? "Gratis" : `$${p.precio}`,
+        frequency: "/mes",
+        description: p.descripcion || "Plan ideal para empezar.",
+        features: [
+          `${p.limite_inmuebles} Propiedades`,
+          p.permite_alertas ? "Alertas Automáticas ✅" : "Sin Alertas",
+          p.permite_reportes ? "Reportes con IA ✅" : "Reportes Básicos",
+          p.permite_destacados ? "Destacados ✅" : "Visibilidad Estándar"
+        ],
+        cta: p.precio == 0 ? "Empezar Gratis" : "Suscribirse",
+        isFeatured: p.nombre.toLowerCase().includes("pro") 
+      }))
+    : [ 
+        // Fallback estático (si el backend falla)
+        { name: "Inicial", price: "Gratis", frequency: "/mes", description: "Para probar.", features: ["2 Propiedades", "Sin Alertas"], cta: "Empezar", isFeatured: false },
+        { name: "Pro", price: "$49", frequency: "/mes", description: "Para agentes.", features: ["20 Propiedades", "Alertas ✅"], cta: "Suscribirse", isFeatured: true },
+        { name: "Enterprise", price: "$199", frequency: "/mes", description: "Agencias grandes.", features: ["Ilimitado", "IA ✅"], cta: "Suscribirse", isFeatured: false },
+      ];
+
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Crear inmueble</h1>
-      </div>
-
-      {err && <div className="p-3 rounded-xl border border-red-300 bg-red-50 text-red-800">{err}</div>}
-      {fieldErrors && Object.keys(fieldErrors).length > 0 && (
-        <div className="p-3 rounded-xl border border-amber-300 bg-amber-50 text-sm">
-          <ul className="list-disc ml-5">
-            {Object.entries(fieldErrors).map(([k, v]) => (
-              <li key={k}>
-                <b>{k}:</b> {String(v)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {ok && <div className="p-3 rounded-xl border border-green-300 bg-green-50 text-green-800">{ok}</div>}
-
-      <form onSubmit={submit} className="space-y-6">
-        {/* Card datos básicos */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-4 md:p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Datos del inmueble</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Agente: solo si admin */}
-            {isAdmin && (
-              <label className="flex flex-col">
-                <span className="text-sm font-medium">
-                  Agente <span className="text-red-500">*</span>
-                </span>
-                <select
-                  name="agente"
-                  value={form.agente}
-                  onChange={onChange}
-                  className={`border p-2 rounded-lg ${
-                    fieldErrors?.agente ? "border-red-400" : ""
-                  }`}
-                >
-                  <option value="">— Selecciona agente —</option>
-                  {agentes.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.label}
-                    </option>
-                  ))}
-                </select>
-                {fieldErrors?.agente && (
-                  <span className="text-xs text-red-600 mt-1">{fieldErrors.agente}</span>
-                )}
-              </label>
-            )}
-
-            {/* Cliente: opcional */}
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Cliente (opcional)</span>
-              <select
-                name="cliente"
-                value={form.cliente}
-                onChange={onChange}
-                className="border p-2 rounded-lg"
-              >
-                <option value="">— Sin cliente —</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">
-                Tipo de inmueble <span className="text-red-500">*</span>
-              </span>
-              <select
-                name="tipo_inmueble_id"
-                value={form.tipo_inmueble_id}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.tipo_inmueble_id ? "border-red-400" : ""
-                }`}
-              >
-                {tipos.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors?.tipo_inmueble_id && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.tipo_inmueble_id}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">
-                Precio <span className="text-red-500">*</span>
-              </span>
-              <input
-                name="precio"
-                value={form.precio}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.precio ? "border-red-400" : ""
-                }`}
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                onWheel={(e) => e.currentTarget.blur()}
-              />
-              {fieldErrors?.precio && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.precio}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col md:col-span-2">
-              <span className="text-sm font-medium">
-                Título <span className="text-red-500">*</span>
-              </span>
-              <input
-                name="titulo"
-                value={form.titulo}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.titulo ? "border-red-400" : ""
-                }`}
-                placeholder="Ej. Departamento moderno en el centro"
-              />
-              {fieldErrors?.titulo && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.titulo}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col md:col-span-2">
-              <span className="text-sm font-medium">
-                Descripción <span className="text-red-500">*</span>
-              </span>
-              <textarea
-                name="descripcion"
-                value={form.descripcion}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.descripcion ? "border-red-400" : ""
-                }`}
-                rows={4}
-              />
-              {fieldErrors?.descripcion && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.descripcion}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">
-                Dirección <span className="text-red-500">*</span>
-              </span>
-              <input
-                name="direccion"
-                value={form.direccion}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.direccion ? "border-red-400" : ""
-                }`}
-              />
-              {fieldErrors?.direccion && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.direccion}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">
-                Ciudad <span className="text-red-500">*</span>
-              </span>
-              <input
-                name="ciudad"
-                value={form.ciudad}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.ciudad ? "border-red-400" : ""
-                }`}
-              />
-              {fieldErrors?.ciudad && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.ciudad}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Zona</span>
-              <input name="zona" value={form.zona} onChange={onChange} className="border p-2 rounded-lg" />
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Superficie (m²)</span>
-              <input
-                name="superficie"
-                value={form.superficie}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.superficie ? "border-red-400" : ""
-                }`}
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                onWheel={stopWheel}
-              />
-              {fieldErrors?.superficie && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.superficie}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Dormitorios</span>
-              <input
-                name="dormitorios"
-                value={form.dormitorios}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.dormitorios ? "border-red-400" : ""
-                }`}
-                type="number"
-                inputMode="numeric"
-                onWheel={stopWheel}
-              />
-              {fieldErrors?.dormitorios && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.dormitorios}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Baños</span>
-              <input
-                name="banos"
-                value={form.banos}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.banos ? "border-red-400" : ""
-                }`}
-                type="number"
-                inputMode="numeric"
-                onWheel={stopWheel}
-              />
-              {fieldErrors?.banos && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.banos}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Tipo de operación</span>
-              <select
-                name="tipo_operacion"
-                value={form.tipo_operacion}
-                onChange={onChange}
-                className="border p-2 rounded-lg"
-              >
-                <option value="venta">Venta</option>
-                <option value="alquiler">Alquiler</option>
-                <option value="anticretico">Anticrético</option>
-              </select>
-            </label>
-
-            {/* Lat/Lng + MapPicker */}
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Latitud</span>
-              <input
-                name="latitud"
-                value={form.latitud}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.latitud ? "border-red-400" : ""
-                }`}
-                type="number"
-                step="0.000001"
-                inputMode="decimal"
-                onWheel={stopWheel}
-              />
-              {fieldErrors?.latitud && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.latitud}</span>
-              )}
-            </label>
-
-            <label className="flex flex-col">
-              <span className="text-sm font-medium">Longitud</span>
-              <input
-                name="longitud"
-                value={form.longitud}
-                onChange={onChange}
-                className={`border p-2 rounded-lg ${
-                  fieldErrors?.longitud ? "border-red-400" : ""
-                }`}
-                type="number"
-                step="0.000001"
-                inputMode="decimal"
-                onWheel={stopWheel}
-              />
-              {fieldErrors?.longitud && (
-                <span className="text-xs text-red-600 mt-1">{fieldErrors.longitud}</span>
-              )}
-            </label>
-
-            <div className="md:col-span-2">
-              <MapPicker
-                value={{
-                  lat: parseFloat(form.latitud || "-17.7833"),
-                  lng: parseFloat(form.longitud || "-63.1821"),
-                }}
-                onChange={({ lat, lng }) =>
-                  setForm((s) => ({
-                    ...s,
-                    latitud: String(lat),
-                    longitud: String(lng),
-                  }))
-                }
-              />
+    <div className="min-h-screen bg-stone-50 pb-20">
+      
+      {/* Hero Section */}
+      <section className="relative flex min-h-[60vh] items-center justify-center overflow-hidden bg-stone-900 px-4 py-20">
+          <div className="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop" alt="Hero" className="h-full w-full object-cover opacity-40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent"></div>
+          </div>
+          
+          <div className="container relative z-10 mx-auto text-center">
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-white sm:text-7xl drop-shadow-lg">
+              Encuentra tu lugar <span className="text-orange-500">ideal</span>
+            </h1>
+            
+            <div className="mx-auto max-w-3xl rounded-2xl border border-white/20 bg-white/10 p-2 backdrop-blur-md shadow-2xl mt-10">
+                <form onSubmit={handleBusqueda} className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Ej: Casa en el centro con 3 habitaciones..." 
+                            className="w-full rounded-xl border-0 bg-white py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-orange-500"
+                            value={busquedaNLP}
+                            onChange={(e) => setBusquedaNLP(e.target.value)}
+                        />
+                    </div>
+                    <button type="submit" className="rounded-xl bg-orange-600 px-8 py-4 font-bold text-white transition hover:bg-orange-500">
+                        Buscar
+                    </button>
+                </form>
             </div>
           </div>
+      </section>
+
+      {/* Featured Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-10">
+             <div>
+                <h2 className="text-3xl font-bold text-stone-900">Propiedades Destacadas</h2>
+                <p className="text-stone-500 mt-2">Las mejores oportunidades del mercado seleccionadas para ti.</p>
+             </div>
+             <Link to="/home/propiedades" className="hidden md:flex items-center text-orange-600 font-semibold hover:text-orange-700">
+                Ver todas <ArrowRight className="ml-1 h-4 w-4" />
+             </Link>
+          </div>
+          
+          <div className="grid gap-8 md:grid-cols-3">
+            {featuredProperties.map((property, idx) => (
+                <div key={idx} className="group overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300 border border-stone-100">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                        <img src={property.image} alt={property.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                            <span className="text-2xl font-bold text-white">{property.price}</span>
+                        </div>
+                    </div>
+                    <div className="p-5">
+                        <h3 className="text-lg font-bold text-stone-900 line-clamp-1">{property.title}</h3>
+                        <div className="flex items-center text-stone-500 text-sm mt-2 mb-4">
+                            <MapPin className="h-4 w-4 mr-1" /> {property.location}
+                        </div>
+                        <div className="flex justify-between border-t border-stone-100 pt-4 text-sm font-medium text-stone-600">
+                            <span className="flex items-center gap-1"><Bed className="h-4 w-4 text-orange-500"/> {property.beds}</span>
+                            <span className="flex items-center gap-1"><Bath className="h-4 w-4 text-orange-500"/> {property.baths}</span>
+                            <span className="flex items-center gap-1"><Square className="h-4 w-4 text-orange-500"/> {property.area}</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Card fotos */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-4 md:p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-3">Fotos (opcional)</h2>
+      {/* --- SECCIÓN DE PLANES MEJORADA --- */}
+      <section className="py-20 px-4 bg-white" id="planes">
+        <div className="container mx-auto">
+          <div className="mb-16 text-center">
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600 uppercase tracking-wider">
+                Suscripciones
+            </span>
+            <h2 className="mt-3 text-4xl font-bold text-stone-900 sm:text-5xl">
+              Planes Flexibles
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-stone-500">
+              Potencia tu negocio inmobiliario con herramientas profesionales.
+            </p>
 
-          {/* Botón estilizado */}
-          <label className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg cursor-pointer hover:bg-sky-700 transition">
-            📤 Subir fotos
-            <input type="file" accept="image/*" multiple onChange={onPickFiles} className="hidden" />
-          </label>
+            {/* INFO DE SUSCRIPCIÓN ACTUAL */}
+            {miSuscripcion && miSuscripcion.estado === 'activa' && (
+                <div className="mx-auto mt-8 max-w-md rounded-xl bg-green-50 p-4 border border-green-100 flex items-center justify-center gap-3 shadow-sm">
+                    <div className="p-2 bg-green-100 rounded-full">
+                        <ShieldCheck className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-sm font-bold text-green-800">Suscripción Activa</p>
+                        <p className="text-xs text-green-600">Vence el {new Date(miSuscripcion.fecha_fin).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            )}
+          </div>
 
-          {items.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-              {items.map((it, i) => (
-                <div key={i} className="border rounded-xl p-2 shadow-sm">
-                  <img
-                    src={it.previewUrl}
-                    alt={it.name}
-                    className="w-full h-28 object-cover rounded-lg"
-                    onError={(e) =>
-                      (e.currentTarget.src = "https://via.placeholder.com/300x200?text=No+preview")
-                    }
-                  />
-                  <div className="text-xs mt-1 truncate">{it.name}</div>
-                  <div className="h-2 bg-gray-200 rounded mt-1 overflow-hidden">
-                    <div
-                      className={`h-2 ${
-                        it.status === "error" ? "bg-red-500" : "bg-stone-900"
-                      }`}
-                      style={{
-                        width: `${it.progress || (it.status === "ok" ? 100 : 0)}%`,
-                      }}
-                    />
+          <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-3">
+            {planesAMostrar.map((plan, index) => {
+              const esMiPlan = miSuscripcion && miSuscripcion.plan === plan.id_backend && miSuscripcion.estado === 'activa';
+
+              return (
+                <div
+                  key={index}
+                  className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 ${
+                    esMiPlan 
+                        ? "bg-white border-2 border-green-500 shadow-2xl scale-105 z-10"
+                        : plan.isFeatured
+                            ? "bg-stone-900 text-white shadow-xl scale-105 z-10 ring-1 ring-stone-900"
+                            : "bg-white border border-stone-200 hover:shadow-lg hover:border-stone-300"
+                  }`}
+                >
+                  {/* ETIQUETA PLAN ACTUAL */}
+                  {esMiPlan && (
+                    <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                      <span className="bg-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md uppercase tracking-wide">
+                        Tu Plan Actual
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ETIQUETA POPULAR (Si no es mi plan) */}
+                  {!esMiPlan && plan.isFeatured && (
+                    <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                      <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md uppercase tracking-wide flex items-center gap-1">
+                        <Crown className="h-3 w-3" /> Más Popular
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mb-6 mt-4">
+                    <h3 className={`text-xl font-bold ${plan.isFeatured && !esMiPlan ? 'text-white' : 'text-stone-900'}`}>
+                      {plan.name}
+                    </h3>
+                    <p className={`mt-2 text-sm ${plan.isFeatured && !esMiPlan ? 'text-stone-400' : 'text-stone-500'}`}>
+                        {plan.description}
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center mt-1 text-xs">
-                    <span
-                      className={
-                        it.status === "ok"
-                          ? "text-green-700"
-                          : it.status === "error"
-                          ? "text-red-700"
-                          : "text-gray-600"
-                      }
-                    >
-                      {it.status === "subiendo" ? "Subiendo…" : it.status === "ok" ? "OK" : "Error"}
+
+                  <div className="mb-6 flex items-baseline">
+                    <span className={`text-5xl font-extrabold ${plan.isFeatured && !esMiPlan ? 'text-white' : 'text-stone-900'}`}>
+                      {plan.price}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => removeFoto(i)}
-                      className="text-red-600 hover:underline"
-                    >
-                      Quitar
-                    </button>
+                    {plan.frequency && (
+                      <span className={`ml-1 text-sm font-medium ${plan.isFeatured && !esMiPlan ? 'text-stone-400' : 'text-stone-500'}`}>
+                        {plan.frequency}
+                      </span>
+                    )}
+                  </div>
+
+                  <ul className="mb-8 space-y-4 flex-1">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <div className={`mt-0.5 rounded-full p-0.5 ${esMiPlan ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                            <Check className="h-3 w-3" strokeWidth={3} />
+                        </div>
+                        <span className={`text-sm font-medium ${plan.isFeatured && !esMiPlan ? 'text-stone-300' : 'text-stone-600'}`}>
+                            {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-auto">
+                    {esMiPlan ? (
+                        <button disabled className="w-full rounded-xl bg-green-50 py-3 text-sm font-bold text-green-600 border border-green-200 cursor-default">
+                            Plan Activo ✅
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => handleSubscribe(plan)}
+                            disabled={loadingPago === plan.id_backend}
+                            className={`w-full rounded-xl py-3 text-sm font-bold transition-all ${
+                                plan.isFeatured
+                                    ? "bg-white text-stone-900 hover:bg-stone-100"
+                                    : "bg-stone-900 text-white hover:bg-stone-800"
+                            } disabled:opacity-70 disabled:cursor-not-allowed`}
+                        >
+                            {loadingPago === plan.id_backend ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" /> Procesando...
+                                </span>
+                            ) : (
+                                plan.cta
+                            )}
+                        </button>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-          <p className="text-xs text-gray-500 mt-2">Formato: JPG/PNG/WebP. Máx. recomendado: 5MB.</p>
+              );
+            })}
+          </div>
         </div>
+      </section>
 
-        <div className="pt-2">
-          <button
-            disabled={disabledSubmit}
-            className="px-5 py-2.5 bg-blue-400 text-white rounded-xl disabled:opacity-60 bg-blue-600"
-            title={subiendo ? "Espera a que terminen de subir las fotos" : ""}
-          >
-            {saving ? "Guardando..." : subiendo ? "Subiendo fotos..." : "Crear inmueble"}
-          </button>
+      {/* CTA Final */}
+      <section className="bg-stone-900 text-white py-16 px-4 mt-10 rounded-t-3xl mx-4 md:mx-8">
+        <div className="container mx-auto text-center max-w-2xl">
+            <h2 className="text-3xl font-bold mb-4">¿Listo para empezar?</h2>
+            <p className="text-stone-400 mb-8">Únete a la plataforma inmobiliaria más innovadora del mercado.</p>
+            <Link to="/home/agentes-contacto" className="inline-block bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-full transition-transform hover:scale-105">
+                Contactar Soporte
+            </Link>
         </div>
-      </form>
+      </section>
     </div>
   );
 }
-

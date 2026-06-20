@@ -1,68 +1,147 @@
-import { useEffect, useState } from "react";
-// Asegúrate de que correrScan esté importada
-import { listarAlertas, crearAlerta, avisarGrupos, marcarEnviada, correrScan } from "../../api/alertas"; 
-import { Calendar, Bell, Send, Plus, Zap } from "lucide-react"; // Zap para el escáner
+// src/pages/Alertas/AlertasAdmin.jsx (CÓDIGO FINAL PARA REEMPLAZAR)
 
-export default function AlertasAdmin({ token }) {
-    const [tab, setTab] = useState("proximos");
+import { useEffect, useState, useCallback } from "react";
+// Importar TODAS las funciones necesarias
+import { enviarAvisoInmediato, correrScan, listarAlertasAdmin } from "../../api/alertas/alertas"; 
+import { Calendar, Bell, Send, Zap } from "lucide-react"; 
+import toast from 'react-hot-toast'; 
+import { useAuth } from '../../hooks/useAuth'  
+    
+export default function AlertasAdmin() {
+    const { token } = useAuth();   // <-- obtener token desde el contexto
+    const [tab, setTab] = useState("todos");
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Crear manual
-    const [openCreate, setOpenCreate] = useState(false);
-    const [form, setForm] = useState({ titulo: "", descripcion: "", due_date: "", tipo: "custom" });
-
-    // Aviso inmediato
+    // Estados para modales (Crear manual omitido por simplicidad)
     const [openAviso, setOpenAviso] = useState(false);
     const [aviso, setAviso] = useState({ 
         titulo: "", 
         descripcion: "", 
-        grupos_destino: [], // Usamos array para IDs seleccionados
-        usuarios_destino: [] // Usamos array para IDs de usuario
+        grupos_destino: [], 
     });
     
-    // Lista hardcoded de grupos comunes (para evitar endpoint GET)
+    // Lista de grupos comunes (Nombres de grupo que el backend espera)
     const GRUPOS_COMUNES = [
-        { id: 3, nombre: 'Clientes' },
-        { id: 2, nombre: 'Agentes' },
-        { id: 1, nombre: 'Administradores' },
+        { nombre_back: 'cliente', nombre_front: 'Clientes' },
+        { nombre_back: 'agente', nombre_front: 'Agentes' },
+        { nombre_back: 'administrador', nombre_front: 'Administradores' },
     ];
+    
+    // -----------------------------------------------------------
+    // FUNCIÓN PRINCIPAL DE CARGA (CORREGIDA)
+    // -----------------------------------------------------------
 
-    const cargar = async () => {
+    const cargar = useCallback(async () => {
         setLoading(true);
         try {
-            const { data } = await listarAlertas(token, tab);
-            setItems(data?.values || []);
+            
+
+            // 1. Mapeo de pestañas a parámetros de backend (estado_envio)
+            let estadoFiltro;
+            if (tab === 'proximos') {
+                estadoFiltro = 'pendiente'; 
+            } else if (tab === 'vencidos') {
+                // El backend usa 'fallido' para los envíos no exitosos (simula vencido)
+                estadoFiltro = 'fallido'; 
+            } 
+            // Si tab === 'todos', estadoFiltro será undefined.
+            
+            const params = estadoFiltro ? { estado: estadoFiltro } : {};
+
+            // 🟢 LLAMADA FINAL A LA API DEL ADMIN: Usa el token implícito de axios/instancia
+            const response = await listarAlertasAdmin(params);
+            const listaAlertas = response.data?.values?.alertas || [];
+            // 🟢 IMPORTANTE: El backend devuelve data.values.alertas
+            setItems(listaAlertas);
+
+        } catch(e) {
+             console.error("Error al cargar alertas del historial para Admin:", e);
+             // console.log("Intenta iniciar sesión como administrador y verifica el permiso 'Alerta'.");
+             toast.error("Error al cargar alertas del historial. Acceso denegado o conexión fallida.");
+             setItems([]);
         } finally { setLoading(false); }
-    };
+    }, [tab, token]);
+
+    // Ejecutar carga al montar y cada vez que 'tab' o 'token' cambian
+    useEffect(() => { 
+        cargar(); 
+    }, [cargar]); 
+    
+    // -----------------------------------------------------------
+    // SUBMIT DE FORMULARIOS Y LÓGICA AUXILIAR
+    // -----------------------------------------------------------
 
     const ejecutarScan = async () => {
-        if (loading) return;
+        if (loading || isSubmitting) return;
         setLoading(true);
+        setIsSubmitting(true);
         try {
-            const { data } = await correrScan(token);
-            // Mostrar un resumen de los envíos
-            alert(`Escáner ejecutado. Correos enviados: ${data.values.email}, Push enviados: ${data.values.push}`);
-            cargar();
+            // Llama al endpoint del Cron Job
+            const { data } = await correrScan(); 
+            toast.success(`Escáner ejecutado. Alquiler: ${data.values.alquiler_alertas}, Anticrético: ${data.values.anticretico_alertas}.`);
+            cargar(); 
         } catch (error) {
-            alert("Hubo un error al ejecutar el escáner. Revise la consola del backend.");
+            toast.error("Hubo un error al ejecutar el escáner.");
         } finally {
             setLoading(false);
+            setIsSubmitting(false);
         }
     };
+    
+    const submitCrear = async (e) => { e.preventDefault(); /* Lógica omitida */ cargar(); };
 
-    useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [tab]);
+    const submitAviso = async (e) => {
+        e.preventDefault();
+        if (!aviso.titulo || aviso.grupos_destino.length === 0) {
+            toast.error("Debe ingresar un título y seleccionar al menos un grupo.");
+            return;
+        }
 
-    const badge = (estado, tipo) => { // Acepta 'tipo' como argumento
+        setIsSubmitting(true);
+        try {
+            const payload = {
+                grupos: aviso.grupos_destino, 
+                mensaje: aviso.descripcion || aviso.titulo, 
+            };
+            
+            await enviarAvisoInmediato(payload);
+            toast.success(`Aviso enviado a ${aviso.grupos_destino.join(', ')}.`);
+            
+            setOpenAviso(false);
+            setAviso({ titulo:"", descripcion:"", grupos_destino:[] });
+            cargar();
+
+        } catch (error) {
+            toast.error("Error al enviar el aviso. Verifique el rol.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    const handleGroupToggle = (groupName) => {
+        setAviso(prevAviso => {
+            const currentGroups = prevAviso.grupos_destino;
+            let newGroups = currentGroups.includes(groupName)
+                ? currentGroups.filter(name => name !== groupName)
+                : [...currentGroups, groupName];
+            
+            return { ...prevAviso, grupos_destino: newGroups };
+        });
+    };
+    
+    const badge = (estado, tipo) => { 
         let c = "bg-slate-100 text-slate-700";
-        if (estado === "vencido") c = "bg-red-100 text-red-700";
+        if (estado === "fallido") c = "bg-red-100 text-red-700"; 
         if (estado === "pendiente") c = "bg-amber-100 text-amber-700";
         if (estado === "enviado") c = "bg-emerald-100 text-emerald-700";
 
         const tipoMap = {
             'custom': 'Manual', 
-            'alquiler_cuota': 'Pago Alquiler', 
-            'fin_contrato': 'Venc. Contrato'
+            'pago_alquiler': 'Pago Alquiler', 
+            'vencimiento_anticretico': 'Venc. Contrato',
+            'aviso_admin': 'Aviso Masivo' 
         };
 
         return (
@@ -75,84 +154,54 @@ export default function AlertasAdmin({ token }) {
         );
     };
 
-    const submitCrear = async (e) => {
-        e.preventDefault();
-        if (!form.titulo || !form.due_date) return; 
-        await crearAlerta(token, form);
-        setOpenCreate(false);
-        setForm({ titulo:"", descripcion:"", due_date:"", tipo:"custom" });
-        cargar();
-    };
-
-    const submitAviso = async (e) => {
-        e.preventDefault();
-        if (!aviso.titulo) return;
-        
-        const payload = {
-            ...aviso,
-            grupos_destino: aviso.grupos_destino || [],
-            usuarios_destino: aviso.usuarios_destino || [],
-            canal_email: true, 
-            canal_push: true
-        };
-        
-        await avisarGrupos(token, payload);
-        setOpenAviso(false);
-        setAviso({ titulo:"", descripcion:"", grupos_destino:[], usuarios_destino:[] });
-        cargar();
-    };
+    // -----------------------------------------------------------
+    // RENDERIZADO
+    // -----------------------------------------------------------
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-semibold flex items-center gap-2">
-                    <Bell className="w-6 h-6" /> Alertas y Recordatorios
+                    <Bell className="w-6 h-6" /> Gestión de Alertas
                 </h1>
                 <div className="flex gap-2">
-                    {/* Botón para ejecutar el escáner */}
-                    <button onClick={ejecutarScan} className="btn-secondary" disabled={loading}>
-                        <Zap className="w-4 h-4 mr-1" /> {loading ? "Ejecutando..." : "Ejecutar Escáner"}
+                    {/* Botón para ejecutar el escáner (Cron Job) */}
+                    <button onClick={ejecutarScan} className="btn-secondary flex items-center" disabled={loading || isSubmitting}>
+                        <Zap className="w-4 h-4 mr-1" /> {loading || isSubmitting ? "Ejecutando..." : "Ejecutar Escáner"}
                     </button>
 
-                    <button onClick={() => setOpenAviso(true)} className="btn">
+                    <button onClick={() => setOpenAviso(true)} className="btn flex items-center" disabled={isSubmitting}>
                         <Send className="w-4 h-4 mr-1" /> Aviso inmediato
-                    </button>
-                    <button onClick={() => setOpenCreate(true)} className="btn-primary">
-                        <Plus className="w-4 h-4 mr-1" /> Crear alerta
                     </button>
                 </div>
             </div>
 
+            {/* Navegación por Pestañas */}
             <div className="bg-white rounded-xl border p-1 inline-flex mb-4">
                 {["proximos","vencidos","todos"].map(t => (
                     <button key={t} onClick={()=>setTab(t)}
-                        className={`px-4 py-2 rounded-lg text-sm ${tab===t ? "bg-slate-900 text-white" : ""}`}>
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${tab===t ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-gray-100"}`}>
                         {t[0].toUpperCase()+t.slice(1)}
                     </button>
                 ))}
             </div>
 
+            {/* Contenido de la Tabla/Lista */}
             <div className="space-y-3">
                 {loading && <div className="text-slate-500">Cargando…</div>}
                 {!loading && items.map(a => (
                     <div key={a.id} className="border rounded-xl p-4 bg-white">
                         <div className="flex items-start justify-between">
                             <div>
-                                <div className="font-medium">{a.titulo}</div>
-                                {a.descripcion && <div className="text-slate-500 text-sm">{a.descripcion}</div>}
+                                <div className="font-medium">{a.mensaje.substring(0, 50)}...</div>
+                                {a.mensaje && <div className="text-slate-500 text-sm">{a.mensaje.substring(0, 100)}...</div>}
                                 <div className="mt-1 text-slate-600 text-sm flex items-center gap-2">
                                     <Calendar className="w-4 h-4" />
-                                    {new Date(a.due_date).toLocaleDateString()}
+                                    {new Date(a.fecha_programada).toLocaleDateString()}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                {badge(a.estado, a.tipo)} 
-                                {a.estado !== "enviado" && (
-                                    <button onClick={()=>marcarEnviada(token, a.id).then(cargar)}
-                                            className="px-3 py-1 rounded-lg border text-sm hover:bg-slate-50">
-                                        Marcar enviada
-                                    </button>
-                                )}
+                                {badge(a.estado_envio, a.tipo_alerta)} 
                             </div>
                         </div>
                     </div>
@@ -160,68 +209,17 @@ export default function AlertasAdmin({ token }) {
                 {!loading && items.length===0 && <div className="text-slate-500">Sin alertas.</div>}
             </div>
 
-            {/* Modal crear */}
-            {openCreate && (
-                <div className="modal">
-                    <form onSubmit={submitCrear} className="modal-card">
-                        <h2 className="text-xl font-semibold mb-6 border-b pb-2">Crear Alerta Manual</h2>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                            <label className="label">Título</label>
-                            <input 
-                                className="input" 
-                                value={form.titulo}
-                                onChange={e => setForm({ ...form, titulo: e.target.value })}
-                                required
-                            />
-                            </div>
-                            
-                            <div>
-                            <label className="label">Fecha Objetivo (due_date)</label>
-                            <input 
-                                type="date" 
-                                className="input" 
-                                value={form.due_date}
-                                onChange={e => setForm({ ...form, due_date: e.target.value })}
-                                required
-                            />
-                            </div>
-                        </div>
-                        
-                        <div className="mt-4">
-                            <label className="label">Descripción</label>
-                            <textarea 
-                            className="textarea" 
-                            value={form.descripcion}
-                            onChange={e => setForm({ ...form, descripcion: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => setOpenCreate(false)} className="btn">
-                            Cancelar
-                            </button>
-                            <button className="btn-primary" type="submit">
-                            Guardar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* Modal aviso inmediato - CORREGIDO CON CHECKBOXES */}
+            {/* Modal de Aviso Inmediato */}
             {openAviso && (
                 <div className="modal">
                     <form onSubmit={submitAviso} className="modal-card">
-                        {/* Título y Separador */}
                         <h2 className="text-xl font-semibold mb-6 border-b pb-2">Aviso Inmediato a Grupos</h2>
                         
                         <label className="label">Título</label>
                         <input 
                             className="input mb-3" 
                             value={aviso.titulo}
-                            onChange={e => setAviso({...aviso,titulo:e.target.value})}
+                            onChange={e => setAviso({...aviso, titulo: e.target.value})}
                             required
                         />
                         
@@ -229,62 +227,44 @@ export default function AlertasAdmin({ token }) {
                         <textarea 
                             className="textarea" 
                             value={aviso.descripcion}
-                            onChange={e => setAviso({...aviso,descripcion:e.target.value})}
+                            onChange={e => setAviso({...aviso, descripcion: e.target.value})}
                         />
                         
-                        {/* === DESTINATARIOS (CHECKBOXES Y TEXTO) === */}
+                        {/* === DESTINATARIOS (NOMBRES DE GRUPO) === */}
                         <div className="mt-4 border p-3 rounded-lg bg-gray-50">
                             <label className="label mb-2 font-semibold text-gray-800">
-                                Destinatarios (Selección Manual)
+                                Destinatarios
                             </label>
                             
-                            {/* Lista de Checkboxes para Grupos Comunes */}
-                            <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4">
+                            <div className="flex flex-wrap gap-x-4 gap-y-2">
                                 {GRUPOS_COMUNES.map(g => (
-                                    <label key={g.id} className="flex items-center space-x-2 cursor-pointer">
+                                    <label key={g.nombre_back} className="flex items-center space-x-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={aviso.grupos_destino.includes(g.id)}
-                                            onChange={(e) => {
-                                                const currentGroups = aviso.grupos_destino;
-                                                let newGroups;
-                                                if (e.target.checked) {
-                                                    newGroups = [...currentGroups, g.id];
-                                                } else {
-                                                    newGroups = currentGroups.filter(id => id !== g.id);
-                                                }
-                                                setAviso({ ...aviso, grupos_destino: newGroups });
-                                            }}
+                                            checked={aviso.grupos_destino.includes(g.nombre_back)}
+                                            onChange={() => handleGroupToggle(g.nombre_back)}
+                                            className="form-checkbox h-4 w-4 text-slate-600 rounded"
                                         />
-                                        <span className="text-sm text-gray-700">{g.nombre} (ID: {g.id})</span>
+                                        <span className="text-sm text-gray-700">{g.nombre_front}</span>
                                     </label>
                                 ))}
                             </div>
                             
-                            {/* Campo de Usuarios Adicionales (Texto, para IDs) 
-                            <div>
-                                <label className="label mt-3">IDs de Usuarios Adicionales (separados por coma)</label>
-                                <input 
-                                    type="text" 
-                                    className="input" 
-                                    placeholder="Ej: 10, 15, 20"
-                                    value={aviso.usuarios_destino.join(', ')}
-                                    onChange={e => setAviso({
-                                        ...aviso,
-                                        usuarios_destino: e.target.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0)
-                                    })}
-                                />
-                            </div>*/}
-                            
                             <p className="text-xs text-slate-500 mt-3">
-                                Los miembros de los grupos seleccionados y los IDs de usuario recibirán el aviso.
+                                Los usuarios de los grupos seleccionados recibirán el aviso vía Push/Email.
                             </p>
                         </div>
                         {/* === FIN DESTINATARIOS === */}
 
                         <div className="mt-6 flex justify-end gap-3">
                             <button type="button" onClick={()=>setOpenAviso(false)} className="btn">Cancelar</button>
-                            <button className="btn-primary" type="submit"><Send className="w-4 h-4 mr-1 inline"/>Enviar</button>
+                            <button className="btn-primary flex items-center" type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? 'Enviando...' : (
+                                    <>
+                                        <Send className="w-4 h-4 mr-1 inline"/>Enviar
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -292,14 +272,3 @@ export default function AlertasAdmin({ token }) {
         </div>
     );
 }
-
-/* Utilitarios Tailwind sugeridos:
-.btn{ @apply px-3 py-2 rounded-lg border; }
-.btn-primary{ @apply px-3 py-2 rounded-lg bg-slate-900 text-white; }
-.btn-secondary{ @apply px-3 py-2 rounded-lg border bg-blue-500 text-white hover:bg-blue-600; }
-.label{ @apply text-sm text-slate-600; }
-.input{ @apply w-full border rounded-lg px-3 py-2; }
-.textarea{ @apply w-full border rounded-lg px-3 py-2 min-h-[96px]; }
-.modal{ @apply fixed inset-0 bg-black/40 grid place-items-center p-4 z-50; }
-.modal-card{ @apply bg-white rounded-xl p-4 w-full max-w-lg shadow-lg; }
-*/

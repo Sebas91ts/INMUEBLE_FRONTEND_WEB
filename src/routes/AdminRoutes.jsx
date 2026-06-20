@@ -22,7 +22,7 @@ import InmuebleDetail from '../pages/Inmuebles/InmuebleDetail'
 import Bitacora from '../pages/Bitacora/Bitacora'
 import TiposInmueble from '../pages/Inmuebles/Tipos'
 import DashboardComisiones from '../pages/Comisiones/DashBoardComisiones'
-import AlertasAdmin from '../pages/Alertas/AlertasAdmin' // <<< AÑADIR ESTA LÍNEA >>>
+import AlertasAdmin from '../pages/Alertas/AlertasAdmin' 
 import AnticreticoPage from '../pages/Contratos/Anticretico/AnticreticoPage'
 import CrearContratoPage from '../pages/Contratos/Anticretico/CrearContratoPage'
 import ReportesIA from '../pages/Reportes/ReportesIA'
